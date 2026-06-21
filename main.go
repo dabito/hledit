@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "0.1.0"
+const version = "0.2.1"
 
 // splitArgs separates a command's args into flags and positionals so that
 // flags may appear before OR after the positional file argument (e.g.
