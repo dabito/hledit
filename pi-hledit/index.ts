@@ -144,11 +144,16 @@ export default function piHleditExtension(pi: ExtensionAPI) {
 				return textResult(await runHledit(args, content, ctx));
 			}
 
-if (op === "batch") {
+			if (op === "batch") {
 				const edits = params.edits as string;
 				if (!edits) {
 					return {
-						content: [{ type: "text" as const, text: "missing 'edits' param. Expected JSON array of ops, e.g.: [{\"op\":\"replace\",\"anchor\":\"5#TX\",\"lines\":[\"new line\"]},{\"op\":\"delete\",\"anchor\":\"3#AB\",\"lines\":[]}] Each op needs: op (replace|delete|insert), anchor (LN#HASH), lines (string array, empty = delete). Use 'insert' op with anchor from read; set after:true to insert after instead of before." }],
+						content: [
+							{
+								type: "text" as const,
+								text: 'missing \'edits\' param. Expected JSON array of ops, e.g.: [{"op":"replace","anchor":"5#TX","lines":["new line"]},{"op":"delete","anchor":"3#AB","lines":[]}] Each op needs: op (replace|delete|insert), anchor (LN#HASH), lines (string array, empty = delete). Use \'insert\' op with anchor from read; set after:true to insert after instead of before.',
+							},
+						],
 						details: { ok: false },
 						isError: true,
 					};
@@ -156,28 +161,78 @@ if (op === "batch") {
 				try {
 					const parsed = JSON.parse(edits);
 					if (!Array.isArray(parsed)) {
-						return { content: [{ type: "text" as const, text: "edits must be a JSON array, not an object. Example: [{\"op\":\"replace\",\"anchor\":\"5#TX\",\"lines\":[\"new\"]}]" }], details: { ok: false }, isError: true };
+						return {
+							content: [
+								{
+									type: "text" as const,
+									text: 'edits must be a JSON array, not an object. Example: [{"op":"replace","anchor":"5#TX","lines":["new"]}]',
+								},
+							],
+							details: { ok: false },
+							isError: true,
+						};
 					}
 					for (let i = 0; i < parsed.length; i++) {
 						const e = parsed[i];
 						if (!e.op || !e.anchor) {
-									return { content: [{ type: "text" as const, text: `edit ${i} missing required fields. Each op needs: op (replace|delete|insert) and anchor (LN#HASH). Got: ${JSON.stringify(e)}` }], details: { ok: false }, isError: true };
+							return {
+								content: [
+									{
+										type: "text" as const,
+										text: `edit ${i} missing required fields. Each op needs: op (replace|delete|insert) and anchor (LN#HASH). Got: ${JSON.stringify(e)}`,
+									},
+								],
+								details: { ok: false },
+								isError: true,
+							};
 						}
 						if (!["replace", "delete", "insert"].includes(e.op)) {
-									return { content: [{ type: "text" as const, text: `edit ${i} has invalid op '${e.op}'. Must be: replace, delete, or insert.` }], details: { ok: false }, isError: true };
+							return {
+								content: [
+									{
+										type: "text" as const,
+										text: `edit ${i} has invalid op '${e.op}'. Must be: replace, delete, or insert.`,
+									},
+								],
+								details: { ok: false },
+								isError: true,
+							};
 						}
 						if (!e.anchor.includes("#")) {
-									return { content: [{ type: "text" as const, text: `edit ${i} anchor '${e.anchor}' is invalid. Expected LN#HH format (e.g. '5#TX'). Run hledit read first to get anchors.` }], details: { ok: false }, isError: true };
+							return {
+								content: [
+									{
+										type: "text" as const,
+										text: `edit ${i} anchor '${e.anchor}' is invalid. Expected LN#HH format (e.g. '5#TX'). Run hledit read first to get anchors.`,
+									},
+								],
+								details: { ok: false },
+								isError: true,
+							};
 						}
 					}
 				} catch (e) {
-					return { content: [{ type: "text" as const, text: `invalid JSON in edits param: ${e.message}. Expected: [{"op":"replace","anchor":"5#TX","lines":["new"]}]` }], details: { ok: false }, isError: true };
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `invalid JSON in edits param: ${e.message}. Expected: [{"op":"replace","anchor":"5#TX","lines":["new"]}]`,
+							},
+						],
+						details: { ok: false },
+						isError: true,
+					};
 				}
 				return textResult(await runHledit(["batch", path], edits, ctx));
 			}
 
 			return {
-				content: [{ type: "text" as const, text: `unknown op '${op}'. Must be: read, edit, or batch. Examples: {op:'read', path:'file.ts'} | {op:'edit', path:'file.ts', anchor:'5#TX', content:'new'} | {op:'batch', path:'file.ts', edits:'[{op,pos,lines}]'}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: `unknown op '${op}'. Must be: read, edit, or batch. Examples: {op:'read', path:'file.ts'} | {op:'edit', path:'file.ts', anchor:'5#TX', content:'new'} | {op:'batch', path:'file.ts', edits:'[{op,pos,lines}]'}`,
+					},
+				],
 				details: { ok: false },
 				isError: true,
 			};

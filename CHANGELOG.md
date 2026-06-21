@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1] — 2026-06-21
+
+### Changed
+
+- **Pi extension: single `hledit` tool** — collapsed 5 separate tools (hledit_read, hledit_replace, hledit_replace_range, hledit_insert, hledit_batch) into one unified `hledit` tool with `op` parameter (read/edit/batch). Reduces token overhead and simplifies model usage.
+- **Enriched error messages** — pi tool errors now include remediation hints with correct JSON format examples, valid op names, and anchor format guidance. Model can self-correct instead of guessing.
+- **Batch edit input format** — simplified to JSON string with `anchor`/`end_anchor`/`lines` fields (consistent with single-edit param names).
+
 ## [0.1.0] — 2026-06-21
 
 ### Added
@@ -12,7 +20,7 @@
 - `--version` / `version` — print version and exit
 - Atomic writes (temp file + rename) with original file permission preservation
 - Trailing newline preservation across all edit operations
-- `pi-hledit` pi coding agent extension with single `hledit` tool (op: read/edit/batch)
+- `pi-hledit` pi coding agent extension
 - 22 golden integration tests covering all operations and edge cases
-- Comprehensive unit test suite (70.8% coverage)
+- Comprehensive unit test suite
 - CHANGELOG.md, LICENSE (MIT), Makefile, ROADMAP.md
