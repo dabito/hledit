@@ -1,0 +1,92 @@
+package main
+
+import (
+	"encoding/json"
+	"io"
+	"os"
+)
+
+// ────────────────────────────────────────────────────────────────────────────
+// Anchor
+// ────────────────────────────────────────────────────────────────────────────
+
+// Anchor is a validated line reference: a 1-indexed line number paired with
+// the expected 2-character hash computed by computeLineHash.
+type Anchor struct {
+	Line int
+	Hash string
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Result / error types (JSON output)
+// ────────────────────────────────────────────────────────────────────────────
+
+// Remap maps a stale requested anchor to its current correct anchor.
+type Remap struct {
+	Requested string `json:"requested"`
+	Current   string `json:"current"`
+}
+
+// EditResult is written to stdout after a successful edit.
+type EditResult struct {
+	OK               bool     `json:"ok"`
+	FirstChangedLine int      `json:"firstChangedLine,omitempty"`
+	Warnings         []string `json:"warnings,omitempty"`
+}
+
+// EditError is written to stdout when validation fails (stale anchor, invalid
+// anchor, empty content, etc.). Always paired with exit code 0.
+type EditError struct {
+	OK      bool    `json:"ok"`
+	Error   string  `json:"error"`
+	Message string  `json:"message"`
+	Remaps  []Remap `json:"remaps,omitempty"`
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Batch edit types
+// ────────────────────────────────────────────────────────────────────────────
+
+// BatchEditOp is a single operation within a batch edit request.
+type BatchEditOp struct {
+	OP     string   `json:"op"`      // "insert", "replace", or "delete"
+	Pos    string   `json:"pos"`     // start anchor (e.g. "5#TX")
+	EndPos string   `json:"end_pos"` // end anchor for replace_range (optional)
+	Lines  []string `json:"lines"`   // replacement/inserted lines; empty = delete
+}
+
+// BatchEditRequest is the top-level JSON document accepted by hledit batch.
+type BatchEditRequest struct {
+	Edits []BatchEditOp `json:"edits"`
+}
+
+// BatchEditResult is written to stdout after a successful batch edit.
+type BatchEditResult struct {
+	OK               bool `json:"ok"`
+	FirstChangedLine int  `json:"firstChangedLine,omitempty"`
+	EditsApplied     int  `json:"editsApplied"`
+}
+
+// BatchEditError is written to stdout when any anchor in the batch is stale.
+type BatchEditError struct {
+	OK      bool    `json:"ok"`
+	Error   string  `json:"error"`
+	Message string  `json:"message"`
+	Remaps  []Remap `json:"remaps,omitempty"`
+	Failed  int     `json:"failed"` // index of first failing edit
+}
+
+// parseBatchRequest unmarshals a BatchEditRequest from stdin.
+func parseBatchRequest() (BatchEditRequest, error) {
+	var req BatchEditRequest
+	data, err := readStdin()
+	if err != nil {
+		return req, err
+	}
+	err = json.Unmarshal(data, &req)
+	return req, err
+}
+
+func readStdin() ([]byte, error) {
+	return io.ReadAll(os.Stdin)
+}
