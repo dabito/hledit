@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0] — 2026-06-22
+
+### Changed
+
+- Promote `hledit` CLI to stable 1.0.0 release.
+- Align public CLI version with the first stable `pi-hledit` package release.
+
 ## [0.1.1] — 2026-06-21
 
 ### Changed
