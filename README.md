@@ -28,21 +28,31 @@ Go installs the binary into `$GOBIN`, or `$GOPATH/bin` when `GOBIN` is unset. Fo
 $HOME/go/bin/hledit
 ```
 
-Make sure that directory is on your shell `PATH`:
+Recommended: add Go's bin directory to your shell `PATH`:
 
 ```bash
 export PATH="$HOME/go/bin:$PATH"
 hledit --version
 ```
 
-If you prefer tools to find `hledit` in `~/.local/bin`, create a symlink. The `mkdir -p` line is only there to create the directory if it does not already exist:
+To make that persistent, add it to your shell startup file, for example:
+
+```bash
+# zsh (macOS default)
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
+
+# bash
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.bashrc
+```
+
+Optional: if an integration specifically looks in `~/.local/bin`, create a compatibility symlink. The `mkdir -p` line is only there to create the directory if it does not already exist:
 
 ```bash
 mkdir -p "$HOME/.local/bin"
 ln -sf "$HOME/go/bin/hledit" "$HOME/.local/bin/hledit"
 ```
 
-The symlink is optional for normal CLI use if `$HOME/go/bin` is already on `PATH`, but it is useful for integrations that look in `~/.local/bin` by default.
+You do not need the symlink for normal CLI use when `$HOME/go/bin` is on `PATH`.
 
 ### Option 2: build from source
 
