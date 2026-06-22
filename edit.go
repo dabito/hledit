@@ -12,6 +12,9 @@ import (
 func readContentLines(contentSrc string) ([]string, error) {
 	var raw []byte
 	var err error
+	if contentSrc == "" {
+		return []string{}, nil
+	}
 	if contentSrc == "-" {
 		raw, err = io.ReadAll(os.Stdin)
 	} else {

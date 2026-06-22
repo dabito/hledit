@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] — 2026-06-22
+
+### Fixed
+
+- Treat an empty CLI content-source argument (`""`) as empty replacement content, so `hledit replace <file> <anchor> ""` deletes the anchored line instead of trying to open an empty file path.
+
 ## [1.0.0] — 2026-06-22
 
 ### Changed
