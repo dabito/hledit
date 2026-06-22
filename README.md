@@ -35,7 +35,7 @@ export PATH="$HOME/go/bin:$PATH"
 hledit --version
 ```
 
-If you prefer tools to find `hledit` in `~/.local/bin`, create a symlink:
+If you prefer tools to find `hledit` in `~/.local/bin`, create a symlink. The `mkdir -p` line is only there to create the directory if it does not already exist:
 
 ```bash
 mkdir -p "$HOME/.local/bin"
