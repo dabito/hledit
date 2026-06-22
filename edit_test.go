@@ -89,13 +89,10 @@ func TestReadContentLines(t *testing.T) {
 		}
 	})
 
-	t.Run("empty content source string", func(t *testing.T) {
-		got, err := readContentLines("")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(got) != 0 {
-			t.Fatalf("readContentLines(empty string) = %#v; want empty slice", got)
+	t.Run("empty content source string is invalid", func(t *testing.T) {
+		_, err := readContentLines("")
+		if err == nil {
+			t.Fatal("readContentLines(empty string) error = nil; want error")
 		}
 	})
 
@@ -165,7 +162,7 @@ func TestCmdReplace(t *testing.T) {
 		}
 	})
 
-	t.Run("delete line with literal empty content source", func(t *testing.T) {
+	t.Run("literal empty content source reports content-source error", func(t *testing.T) {
 		dir := t.TempDir()
 		target := editTestWriteLinesFile(t, dir, "target.txt", "alpha", "bravo")
 		anchor := formatTag(1, "alpha")
@@ -174,18 +171,23 @@ func TestCmdReplace(t *testing.T) {
 			_ = cmdReplace(target, anchor, "")
 		})
 
-		var got EditResult
+		var got EditError
 		editTestMustUnmarshal(t, out, &got)
-		if !got.OK || got.FirstChangedLine != 1 {
-			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 1", got)
+		if got.OK || got.Error != "io" {
+			t.Fatalf("cmdReplace output = %#v; want io error", got)
+		}
+		for _, want := range []string{"content-source argument is empty", "use '-' as the content-source", "hledit replace <file> <anchor> -"} {
+			if !strings.Contains(got.Message, want) {
+				t.Fatalf("error message %q missing %q", got.Message, want)
+			}
 		}
 
 		data, err := os.ReadFile(target)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if string(data) != "bravo\n" {
-			t.Fatalf("target content = %q; want %q", string(data), "bravo\n")
+		if string(data) != "alpha\nbravo\n" {
+			t.Fatalf("target content = %q; want unchanged", string(data))
 		}
 	})
 

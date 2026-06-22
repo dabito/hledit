@@ -2,24 +2,17 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 )
 
 func emitError(errType, message string) error {
-	errObj := EditError{
+	return emitJSON(EditError{
 		OK:      false,
 		Error:   errType,
 		Message: message,
-	}
-	output, err := json.Marshal(errObj)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Println(string(output))
-	return err
+	})
 }
 
 // readFileLines reads a file, checks for binary content, and returns its lines.

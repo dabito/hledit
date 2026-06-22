@@ -106,11 +106,11 @@ cat header.txt | hledit insert --before main.go 1#WV -
 printf '// done\n' | hledit insert --after main.go 99#TX -
 ```
 
-Delete a line or range by providing empty content:
+Delete a line or range by piping empty stdin and using `-` as the content source:
 
 ```bash
-: | hledit replace main.go 6#MX -
-: | hledit replace-range main.go 12#NK 18#VR -
+printf '' | hledit replace main.go 6#MX -
+printf '' | hledit replace-range main.go 12#NK 18#VR -
 ```
 
 ## Output

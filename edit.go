@@ -12,9 +12,6 @@ import (
 func readContentLines(contentSrc string) ([]string, error) {
 	var raw []byte
 	var err error
-	if contentSrc == "" {
-		return []string{}, nil
-	}
 	if contentSrc == "-" {
 		raw, err = io.ReadAll(os.Stdin)
 	} else {
@@ -32,10 +29,21 @@ func readContentLines(contentSrc string) ([]string, error) {
 	return strings.Split(s, "\n"), nil
 }
 
+func contentSourceErrorMessage(contentSrc string, err error) string {
+	if contentSrc == "" {
+		return "content-source argument is empty; replace/replace-range/insert expect <content-source> to be '-' for stdin or a file path. To delete, pipe empty stdin and use '-' as the content-source, e.g. printf '' | hledit replace <file> <anchor> -"
+	}
+	return fmt.Sprintf("content-source argument %q could not be read: %v. If you intended literal replacement text, pipe it on stdin and use '-' as the content-source", contentSrc, err)
+}
+
+func targetFileErrorMessage(path string, err error) string {
+	return fmt.Sprintf("file argument %q could not be read: %v", path, err)
+}
+
 func loadFileLines(path string) ([]string, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		emitError("io", err.Error())
+		emitError("io", targetFileErrorMessage(path, err))
 		return nil, err
 	}
 
@@ -47,18 +55,10 @@ func loadFileLines(path string) ([]string, error) {
 }
 
 func emitJSON(v any) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	_, err = os.Stdout.Write(b)
-	if err != nil {
-		return err
-	}
-	_, err = os.Stdout.Write([]byte{'\n'})
-	return err
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	return enc.Encode(v)
 }
-
 func emitJSONError(e EditError) error {
 	return emitJSON(e)
 }
@@ -126,7 +126,7 @@ func editOp(
 
 	newLines, cerr := readContentLines(contentSrc)
 	if cerr != nil {
-		emitError("io", cerr.Error())
+		emitError("io", contentSourceErrorMessage(contentSrc, cerr))
 		return nil
 	}
 

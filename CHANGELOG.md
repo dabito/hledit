@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2] — 2026-06-22
+
+### Changed
+
+- Restore the original content-source contract: use `-` for stdin or pass a file path; a literal empty argument (`""`) is not treated as replacement content.
+- Improve I/O error messages so failures identify whether the file argument or content-source argument caused the error and show the empty-stdin deletion form.
+
 ## [1.0.1] — 2026-06-22
 
 ### Fixed
