@@ -6,8 +6,8 @@
 hledit <verb> [flags] <file> [anchor] [end-anchor] <content-source>
 ```
 
-- Exit code 0 always. Check JSON `ok` field for success/failure.
-- All output to stdout. Errors as JSON to stdout (never stderr).
+- Logical outcomes (success, stale anchors, invalid anchors/content, binary/range/io errors) exit 0 and are reported on stdout.
+- CLI misuse exits 2 with usage on stderr; unrecoverable infrastructure failures exit 1.
 
 ## 2. Verbs
 
@@ -109,6 +109,38 @@ hledit insert [--before|--after] <file> <anchor> <content-source>
 2. Insert new lines at the specified position.
 3. Write atomically.
 
+### 2.6 `batch`
+
+```
+hledit batch <file>
+```
+
+Reads a JSON `BatchEditRequest` from stdin:
+
+```json
+{
+  "edits": [
+    { "op": "replace", "pos": "12#NK", "lines": ["new line"] },
+    { "op": "replace", "pos": "12#NK", "end_pos": "18#VR", "lines": ["new block"] },
+    { "op": "delete", "pos": "5#TX", "lines": [] },
+    { "op": "insert", "pos": "8#VR", "lines": ["inserted"] }
+  ]
+}
+```
+
+Validation:
+
+- All anchors are validated against the original file state before any write.
+- `replace` and `delete` use optional `end_pos` as an inclusive range end; if omitted, they target only `pos`.
+- `replace` and `delete` require `pos.Line <= end_pos.Line` when `end_pos` is provided.
+- `insert` requires non-empty `lines` and inserts before `pos`.
+- Unknown operations or invalid anchors return `error: "invalid"`; stale anchors return `error: "stale"` with remaps.
+
+Application:
+
+- Edits are applied bottom-up by original `pos.Line`.
+- The file is written once, atomically, only after the full batch validates.
+
 ## 3. Hash Algorithm
 
 ```
@@ -134,12 +166,11 @@ computeLineHash(lineNum, line):
 
 ### 4.1 Batch semantics
 
-When a single `hledit` invocation applies edits (e.g. `replace` with multi-line content, or `replace-range`), all edits in that invocation are validated **before** any write occurs. If any anchor is stale, nothing is written.
+Every write invocation validates all anchors and content before writing. If any anchor is stale or any operation is invalid, nothing is written.
 
 ### 4.2 Application order
 
-Within a single invocation, there is at most one edit operation. For future batch support: edits are applied **bottom-up** (highest line number first) so that earlier line-number references are not shifted by earlier edits.
-
+Single-edit verbs apply one operation. `batch` applies validated edits bottom-up (highest original line number first) so earlier line-number references are not shifted by later edits.
 ### 4.3 Atomic writes
 
 1. Write new content to `<file>.hledit.tmp`.

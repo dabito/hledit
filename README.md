@@ -105,6 +105,7 @@ hledit read-range <file> [--offset N] [--limit M]
 hledit replace <file> <anchor> <content-source>
 hledit replace-range <file> <anchor> <end-anchor> <content-source>
 hledit insert [--before|--after] <file> <anchor> <content-source>
+hledit batch <file>
 ```
 
 `<content-source>` is either `-` for stdin or a file path.
@@ -141,7 +142,11 @@ Insert before or after an anchor:
 cat header.txt | hledit insert --before main.go 1#WV -
 printf '// done\n' | hledit insert --after main.go 99#TX -
 ```
+Apply multiple edits atomically with JSON on stdin:
 
+```bash
+printf '%s\n' '{"edits":[{"op":"replace","pos":"12#NK","end_pos":"18#VR","lines":["new block"]},{"op":"insert","pos":"22#VR","lines":["// inserted"]}]}' | hledit batch main.go
+```
 Delete a line or range by piping empty stdin and using `-` as the content source:
 
 ```bash

@@ -15,3 +15,4 @@ coverage.out
 
 # pi-lens cache
 .pi-lens/
+.pi/

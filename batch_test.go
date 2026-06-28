@@ -161,6 +161,52 @@ func TestCmdBatch(t *testing.T) {
 		}
 	})
 
+	t.Run("range with end_pos before pos is invalid", func(t *testing.T) {
+		dir := t.TempDir()
+		target := editTestWriteLinesFile(t, dir, "target.txt", "alpha", "bravo", "charlie")
+
+		out := batchTestWriteReq(t, target, BatchEditOp{
+			OP:     "replace",
+			Pos:    formatTag(3, "charlie"),
+			EndPos: formatTag(2, "bravo"),
+			Lines:  []string{"delta"},
+		})
+
+		var got BatchEditError
+		batchTestMustUnmarshal(t, out, &got)
+		if got.OK || got.Error != "invalid" {
+			t.Fatalf("batch output = %#v; want invalid error", got)
+		}
+		if !strings.Contains(got.Message, "start line 3 > end line 2") {
+			t.Fatalf("message = %q, want start/end detail", got.Message)
+		}
+		if want := []string{"alpha", "bravo", "charlie"}; !equalLines(batchTestReadLines(t, target), want) {
+			t.Fatalf("target lines = %#v, want %#v", batchTestReadLines(t, target), want)
+		}
+	})
+
+	t.Run("insert with empty lines is invalid", func(t *testing.T) {
+		dir := t.TempDir()
+		target := editTestWriteLinesFile(t, dir, "target.txt", "alpha", "bravo")
+
+		out := batchTestWriteReq(t, target, BatchEditOp{
+			OP:    "insert",
+			Pos:   formatTag(1, "alpha"),
+			Lines: nil,
+		})
+
+		var got BatchEditError
+		batchTestMustUnmarshal(t, out, &got)
+		if got.OK || got.Error != "invalid" {
+			t.Fatalf("batch output = %#v; want invalid error", got)
+		}
+		if !strings.Contains(got.Message, "insert requires non-empty content") {
+			t.Fatalf("message = %q, want empty insert detail", got.Message)
+		}
+		if want := []string{"alpha", "bravo"}; !equalLines(batchTestReadLines(t, target), want) {
+			t.Fatalf("target lines = %#v, want %#v", batchTestReadLines(t, target), want)
+		}
+	})
 	t.Run("stale anchor returns remaps", func(t *testing.T) {
 		dir := t.TempDir()
 		target := editTestWriteLinesFile(t, dir, "target.txt", "alpha", "bravo", "charlie")
@@ -169,8 +215,8 @@ func TestCmdBatch(t *testing.T) {
 		}
 
 		out := batchTestWriteReq(t, target, BatchEditOp{
-			OP:  "replace",
-			Pos: formatTag(2, "bravo"),
+			OP:    "replace",
+			Pos:   formatTag(2, "bravo"),
 			Lines: []string{"NEW"},
 		})
 

@@ -1,6 +1,18 @@
 # Changelog
 
-## [1.0.2] — 2026-06-22
+## [1.0.3] — 2026-06-28
+
+### Fixed
+
+- Honor `end_pos` in batch `replace`/`delete` operations.
+- Report the minimum `firstChangedLine` across batch edits.
+- Reject binary files consistently in write paths.
+- Treat dash-prefixed positional values such as `-prefix` as positionals unless they are known flags.
+- Reject invalid batch ranges and empty batch inserts before writing.
+
+### Changed
+
+- Document batch JSON range semantics and update the public CLI version.
 
 ### Changed
 

@@ -225,12 +225,12 @@ func cmdInsert(path, anchorStr, contentSrc string, after bool) error {
 func cmdBatch(path string) error {
 	req, err := parseBatchRequest()
 	if err != nil {
-		emitBatchError(fmt.Sprintf("invalid batch request: %s", err.Error()), nil, -1)
+		emitBatchInvalidError(fmt.Sprintf("invalid batch request: %s", err.Error()), -1)
 		return nil
 	}
 
 	if len(req.Edits) == 0 {
-		emitBatchError("batch request contains no edits", nil, -1)
+		emitBatchInvalidError("batch request contains no edits", -1)
 		return nil
 	}
 
@@ -255,7 +255,7 @@ func cmdBatch(path string) error {
 	for i, e := range req.Edits {
 		pos, perr := parseAnchor(e.Pos)
 		if perr != nil {
-			emitBatchError(fmt.Sprintf("edit %d: invalid anchor %q: %s", i, e.Pos, perr.Error()), nil, i)
+			emitBatchInvalidError(fmt.Sprintf("edit %d: invalid anchor %q: %s", i, e.Pos, perr.Error()), i)
 			return nil
 		}
 
@@ -263,7 +263,7 @@ func cmdBatch(path string) error {
 		if e.EndPos != "" {
 			ep, eerr := parseAnchor(e.EndPos)
 			if eerr != nil {
-				emitBatchError(fmt.Sprintf("edit %d: invalid end anchor %q: %s", i, e.EndPos, eerr.Error()), nil, i)
+				emitBatchInvalidError(fmt.Sprintf("edit %d: invalid end anchor %q: %s", i, e.EndPos, eerr.Error()), i)
 				return nil
 			}
 			endPos = &ep
@@ -271,10 +271,25 @@ func cmdBatch(path string) error {
 
 		newLines, cerr := readContentLinesFromOps(e.Lines)
 		if cerr != nil {
-			emitBatchError(fmt.Sprintf("edit %d: %s", i, cerr.Error()), nil, i)
+			emitBatchInvalidError(fmt.Sprintf("edit %d: %s", i, cerr.Error()), i)
 			return nil
 		}
 
+		switch e.OP {
+		case "replace", "delete":
+			if endPos != nil && pos.Line > endPos.Line {
+				emitBatchInvalidError(fmt.Sprintf("edit %d: start line %d > end line %d", i, pos.Line, endPos.Line), i)
+				return nil
+			}
+		case "insert":
+			if len(newLines) == 0 {
+				emitBatchInvalidError(fmt.Sprintf("edit %d: insert requires non-empty content", i), i)
+				return nil
+			}
+		default:
+			emitBatchInvalidError(fmt.Sprintf("edit %d: unknown op %q", i, e.OP), i)
+			return nil
+		}
 		// Validate anchor against current file state
 		if pos.Line < 1 || pos.Line > len(lines) {
 			if firstBad == -1 {
@@ -366,7 +381,7 @@ func cmdBatch(path string) error {
 			result = append(result, lines[cutIdx:]...)
 			lines = result
 		default:
-			emitBatchError(fmt.Sprintf("unknown op %q", e.op), nil, -1)
+			emitBatchInvalidError(fmt.Sprintf("unknown op %q", e.op), -1)
 			return nil
 		}
 
@@ -390,9 +405,17 @@ func cmdBatch(path string) error {
 }
 
 func emitBatchError(msg string, remaps []Remap, failed int) error {
+	return emitBatchErrorType("stale", msg, remaps, failed)
+}
+
+func emitBatchInvalidError(msg string, failed int) error {
+	return emitBatchErrorType("invalid", msg, nil, failed)
+}
+
+func emitBatchErrorType(errType, msg string, remaps []Remap, failed int) error {
 	return emitJSON(BatchEditError{
 		OK:      false,
-		Error:   "stale",
+		Error:   errType,
 		Message: msg,
 		Remaps:  remaps,
 		Failed:  failed,

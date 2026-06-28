@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "1.0.2"
+const version = "1.0.3"
 
 // splitArgs separates a command's args into flags and positionals so that
 // flags may appear before OR after the positional file argument (e.g.
@@ -62,6 +62,7 @@ Arguments:
 Batch input (JSON on stdin):
   {"edits": [
     {"op": "replace", "pos": "12#NK", "lines": ["new line"]},
+    {"op": "replace", "pos": "12#NK", "end_pos": "18#VR", "lines": ["new block"]},
     {"op": "delete", "pos": "5#TX", "lines": []},
     {"op": "insert", "pos": "8#VR", "lines": ["inserted"]}
   ]}
