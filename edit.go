@@ -47,8 +47,15 @@ func loadFileLines(path string) ([]string, error) {
 		return nil, err
 	}
 
+	for i := 0; i < len(content) && i < 8192; i++ {
+		if content[i] == 0x00 {
+			emitError("binary", "file appears to be binary")
+			return nil, fmt.Errorf("file appears to be binary")
+		}
+	}
+
 	lines := strings.Split(string(content), "\n")
-	if len(lines) > 1 && lines[len(lines)-1] == "" {
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]
 	}
 	return lines, nil
@@ -344,8 +351,12 @@ func cmdBatch(path string) error {
 	for _, e := range parsed {
 		switch e.op {
 		case "replace", "delete":
+			eop := e.endPos
+			if eop == nil {
+				eop = &e.pos
+			}
 			before := append([]string{}, lines[:e.pos.Line-1]...)
-			after := lines[e.pos.Line:]
+			after := lines[eop.Line:]
 			lines = append(before, e.lines...)
 			lines = append(lines, after...)
 		case "insert":
@@ -358,10 +369,10 @@ func cmdBatch(path string) error {
 			emitBatchError(fmt.Sprintf("unknown op %q", e.op), nil, -1)
 			return nil
 		}
-	}
 
-	if firstChanged < 0 {
-		firstChanged = 1
+		if e.lineNum < firstChanged {
+			firstChanged = e.lineNum
+		}
 	}
 
 	hadTrailing := fileHasTrailingNewline(path)

@@ -81,6 +81,14 @@ func TestSplitArgs(t *testing.T) {
 	if got, want := strings.Join(flags, ","), "--after"; got != want {
 		t.Fatalf("insert flags = %q, want %q", got, want)
 	}
+
+	pos, flags = splitArgs([]string{"-prefix", "file.go", "1#AA"})
+	if got, want := strings.Join(pos, ","), "-prefix,file.go,1#AA"; got != want {
+		t.Fatalf("dash-prefixed path positionals = %q, want %q", got, want)
+	}
+	if got := strings.Join(flags, ","); got != "" {
+		t.Fatalf("dash-prefixed path flags = %q, want empty", got)
+	}
 }
 
 func TestMainHelp(t *testing.T) {

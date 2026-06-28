@@ -276,6 +276,24 @@ func TestCmdReplace(t *testing.T) {
 	})
 }
 
+func TestCmdReplaceBinaryDetectionEmitsJSONError(t *testing.T) {
+	t.Run("binary target returns binary JSON error", func(t *testing.T) {
+		dir := t.TempDir()
+		target := editTestWriteTextFile(t, dir, "binary.bin", string([]byte{'a', 0x00, 'b', '\n'}))
+		contentSrc := editTestWriteLinesFile(t, dir, "content.txt", "delta")
+
+		out := editTestCaptureStdout(t, func() {
+			_ = cmdReplace(target, "1#WS", contentSrc)
+		})
+
+		var got EditError
+		editTestMustUnmarshal(t, out, &got)
+		if got.OK || got.Error != "binary" {
+			t.Fatalf("cmdReplace output = %#v; want binary error", got)
+		}
+	})
+}
+
 func TestCmdReplaceRange(t *testing.T) {
 	t.Run("replace range with one line", func(t *testing.T) {
 		dir := t.TempDir()

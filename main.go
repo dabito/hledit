@@ -16,20 +16,30 @@ const version = "1.0.2"
 func splitArgs(args []string) (positionals []string, flags []string) {
 	// Flags that take a value ("-x v" form) in our subcommands.
 	valueFlags := map[string]bool{"-offset": true, "--offset": true, "-limit": true, "--limit": true, "-grep": true, "--grep": true}
+	boolFlags := map[string]bool{"--before": true, "--after": true}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if a == "-" {
 			positionals = append(positionals, a)
-		} else if len(a) > 0 && a[0] == '-' {
+			continue
+		}
+		if valueFlags[a] {
 			flags = append(flags, a)
-			// If this flag takes a separate value arg, grab the next one too.
-			if valueFlags[a] && i+1 < len(args) {
+			if i+1 < len(args) {
 				flags = append(flags, args[i+1])
 				i++
 			}
-		} else {
-			positionals = append(positionals, a)
+			continue
 		}
+		if boolFlags[a] {
+			flags = append(flags, a)
+			continue
+		}
+		if len(a) > 0 && a[0] == '-' {
+			positionals = append(positionals, a)
+			continue
+		}
+		positionals = append(positionals, a)
 	}
 	return positionals, flags
 }
