@@ -199,14 +199,16 @@ Anchors are `LN#HH`:
 
 ## Credits and prior art
 
-`hledit` builds on the hashline editing idea from the AI coding-agent ecosystem:
+The core hashline-edit idea comes from Can Bölük / @can1357's work on coding-agent harnesses, especially [“I Improved 15 LLMs at Coding in One Afternoon. Only the Harness Changed.”](https://blog.can.ac/2026/02/12/the-harness-problem/) and [`oh-my-pi`](https://github.com/can1357/oh-my-pi). Read that article for the deeper technical rationale and benchmark discussion.
 
-- [`aron/hashline`](https://github.com/aron/hashline) — reference Go implementation and spec for hash-anchored line editing.
-- [`can1357/oh-my-pi` Hashline Mode](https://deepwiki.com/can1357/oh-my-pi/8.1-hashline-mode) — originated the hashline mode approach for Pi-style coding agents.
-- [Hashline file editing](https://oss.vstorm.co/blog/hashline-file-editing/) — overview of the technique and motivation for replacing fragile text matching.
-- [The Harness Problem](https://blog.can.ac/2026/02/12/the-harness-problem/) — benchmark/study motivating better tool harnesses for AI coding agents.
+This repo is intentionally narrower:
 
-This implementation is a small standalone CLI focused on deterministic, stdlib-only Go behavior and Pi/package integration via the separate [`pi-hledit`](https://github.com/dabito/pi-hledit) extension.
+- standalone stdlib Go CLI, not a full agent harness;
+- stable JSON outputs for agent/tool integration;
+- deterministic stale-checking edits with no fuzzy matching;
+- Pi integration kept separate in [`pi-hledit`](https://github.com/dabito/pi-hledit).
+
+Additional prior art: [`aron/hashline`](https://github.com/aron/hashline), a reference Go implementation/spec for hash-anchored line editing.
 
 ## Project docs
 
