@@ -1,8 +1,10 @@
 # Changelog
-## [Unreleased]
+## [1.1.0] — 2026-06-29
 
 ### Changed
 
+- Add read/read-range `--grep` substring filtering and `--context` surrounding-line windows.
+- Add `--json` on `read` / `read-range` with structured output.
 - Add `anchors` command with `ANCHOR<TAB>TEXT` output and read-shaped JSON.
 - Add `batch --check` validate-only mode and batch `lastChangedLine` / `checked` metadata.
 
@@ -19,8 +21,6 @@
 ### Changed
 
 - Document batch JSON range semantics and update the public CLI version.
-- Add read/read-range `--grep` substring filtering and `--context` surrounding-line windows.
-- Add `--json` on `read` / `read-range` with structured output.
 
 ### Changed
 
