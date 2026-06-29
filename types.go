@@ -76,6 +76,29 @@ type BatchEditError struct {
 	Failed  int     `json:"failed"` // index of first failing edit
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Read result types (JSON output for --json flag)
+// ────────────────────────────────────────────────────────────────────────────
+
+// ReadLine is a single annotated line in a JSON read result.
+type ReadLine struct {
+	Line   int    `json:"line"`
+	Anchor string `json:"anchor"`
+	Text   string `json:"text"`
+}
+
+// ReadResult is written to stdout by read/read-range when --json is set.
+type ReadResult struct {
+	OK         bool       `json:"ok"`
+	Lines      []ReadLine `json:"lines"`
+	Truncated  bool       `json:"truncated"`
+	NextOffset int        `json:"nextOffset,omitempty"`
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Batch edit types
+// ────────────────────────────────────────────────────────────────────────────
+
 // parseBatchRequest unmarshals a BatchEditRequest from stdin.
 func parseBatchRequest() (BatchEditRequest, error) {
 	var req BatchEditRequest

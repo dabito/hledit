@@ -59,7 +59,7 @@ func TestCmdReadAnnotatesSmallFile(t *testing.T) {
 	path := readTestWriteFile(t, dir, "small.txt", "alpha\nbeta\n")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "", 0); err != nil {
+		if err := cmdRead(path, "", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -84,7 +84,7 @@ func TestCmdReadDropsTrailingPhantomEmptyLine(t *testing.T) {
 	path := readTestWriteFile(t, dir, "trailing-newline.txt", "solo\n")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "", 0); err != nil {
+		if err := cmdRead(path, "", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -104,7 +104,7 @@ func TestCmdReadMissingFileEmitsIOErrorJSON(t *testing.T) {
 	path := filepath.Join(dir, "missing.txt")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "", 0); err != nil {
+		if err := cmdRead(path, "", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -126,7 +126,7 @@ func TestCmdReadBinaryDetectionEmitsJSONError(t *testing.T) {
 	path := readTestWriteFile(t, dir, "binary.bin", string([]byte{'a', 0x00, 'b', '\n'}))
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "", 0); err != nil {
+		if err := cmdRead(path, "", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -152,7 +152,7 @@ func TestCmdReadTruncatesAfterTwoThousandLines(t *testing.T) {
 	path := readTestWriteFile(t, dir, "many-lines.txt", b.String())
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "", 0); err != nil {
+		if err := cmdRead(path, "", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -177,7 +177,7 @@ func TestCmdReadRangeUsesAbsoluteLineNumbersAndExactRange(t *testing.T) {
 	path := readTestWriteFile(t, dir, "range.txt", "one\ntwo\nthree\nfour\nfive\n")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdReadRange(path, 2, 2, "", 0); err != nil {
+		if err := cmdReadRange(path, 2, 2, "", 0, false); err != nil {
 			t.Fatalf("cmdReadRange returned error: %v", err)
 		}
 	})
@@ -202,7 +202,7 @@ func TestCmdReadRangeOffsetLessThanOneIsTreatedAsOne(t *testing.T) {
 	path := readTestWriteFile(t, dir, "offset0.txt", "first\nsecond\n")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdReadRange(path, 0, 1, "", 0); err != nil {
+		if err := cmdReadRange(path, 0, 1, "", 0, false); err != nil {
 			t.Fatalf("cmdReadRange returned error: %v", err)
 		}
 	})
@@ -225,7 +225,7 @@ func TestCmdReadRangeOffsetBeyondFileLengthEmitsRangeError(t *testing.T) {
 	path := readTestWriteFile(t, dir, "range-error.txt", "one\ntwo\n")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdReadRange(path, 3, 1, "", 0); err != nil {
+		if err := cmdReadRange(path, 3, 1, "", 0, false); err != nil {
 			t.Fatalf("cmdReadRange returned error: %v", err)
 		}
 	})
@@ -254,7 +254,7 @@ func TestCmdReadTruncatesAt50KBByteLimit(t *testing.T) {
 	path := readTestWriteFile(t, dir, "big-lines.txt", b.String())
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "", 0); err != nil {
+		if err := cmdRead(path, "", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -283,7 +283,7 @@ func TestCmdReadGrep(t *testing.T) {
 	path := readTestWriteFile(t, dir, "grep.txt", grepFixture)
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "match", 0); err != nil {
+		if err := cmdRead(path, "match", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -303,7 +303,7 @@ func TestCmdReadGrepNoMatch(t *testing.T) {
 	path := readTestWriteFile(t, dir, "grep-nomatch.txt", grepFixture)
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "zzz-no-match", 0); err != nil {
+		if err := cmdRead(path, "zzz-no-match", 0, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -319,7 +319,7 @@ func TestCmdReadGrepContext(t *testing.T) {
 	path := readTestWriteFile(t, dir, "ctx.txt", grepFixture)
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "match", 1); err != nil {
+		if err := cmdRead(path, "match", 1, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -351,7 +351,7 @@ func TestCmdReadGrepContextClampsToBounds(t *testing.T) {
 	path := readTestWriteFile(t, dir, "clamp.txt", "match-me\nbeta\ngamma\n")
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdRead(path, "match", 5); err != nil {
+		if err := cmdRead(path, "match", 5, false); err != nil {
 			t.Fatalf("cmdRead returned error: %v", err)
 		}
 	})
@@ -373,7 +373,7 @@ func TestCmdReadRangeGrepContext(t *testing.T) {
 	path := readTestWriteFile(t, dir, "rr-ctx.txt", content)
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdReadRange(path, 1, 2000, "match", 1); err != nil {
+		if err := cmdReadRange(path, 1, 2000, "match", 1, false); err != nil {
 			t.Fatalf("cmdReadRange returned error: %v", err)
 		}
 	})
@@ -402,7 +402,7 @@ func TestCmdReadRangeGrepOffsetAfterLastMatch(t *testing.T) {
 	path := readTestWriteFile(t, dir, "rr-offset-after.txt", grepFixture)
 
 	output := readTestCaptureStdout(t, func() {
-		if err := cmdReadRange(path, 5, 2000, "match", 1); err != nil {
+		if err := cmdReadRange(path, 5, 2000, "match", 1, false); err != nil {
 			t.Fatalf("cmdReadRange returned error: %v", err)
 		}
 	})
@@ -435,5 +435,200 @@ func TestApplyContextZeroIsNoop(t *testing.T) {
 	got := applyContext(lines, matchIdxs, 0)
 	if len(got) != 1 || got[0] != 2 {
 		t.Fatalf("applyContext context=0 should be noop, got %v", got)
+	}
+}
+
+// ─── JSON output tests ────────────────────────────────────────────────────────
+
+func readTestParseJSON(t *testing.T, output string) ReadResult {
+	t.Helper()
+	var r ReadResult
+	if err := json.Unmarshal([]byte(output), &r); err != nil {
+		t.Fatalf("json.Unmarshal: %v (output=%q)", err, output)
+	}
+	return r
+}
+
+func TestCmdReadJSONSmallFile(t *testing.T) {
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "small.txt", "alpha\nbeta\n")
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdRead(path, "", 0, true); err != nil {
+			t.Fatalf("cmdRead json returned error: %v", err)
+		}
+	})
+
+	r := readTestParseJSON(t, output)
+	if !r.OK {
+		t.Fatalf("ok = false; want true")
+	}
+	if r.Truncated {
+		t.Fatalf("truncated = true; want false")
+	}
+	if r.NextOffset != 0 {
+		t.Fatalf("nextOffset = %d; want 0 (omitted)", r.NextOffset)
+	}
+	if len(r.Lines) != 2 {
+		t.Fatalf("lines count = %d; want 2", len(r.Lines))
+	}
+	if r.Lines[0].Line != 1 || r.Lines[0].Text != "alpha" {
+		t.Fatalf("lines[0] = %+v; want line=1 text=alpha", r.Lines[0])
+	}
+	if r.Lines[0].Anchor != formatTag(1, "alpha") {
+		t.Fatalf("lines[0].anchor = %q; want %q", r.Lines[0].Anchor, formatTag(1, "alpha"))
+	}
+	if r.Lines[1].Line != 2 || r.Lines[1].Text != "beta" {
+		t.Fatalf("lines[1] = %+v; want line=2 text=beta", r.Lines[1])
+	}
+}
+
+func TestCmdReadJSONTruncation(t *testing.T) {
+	dir := t.TempDir()
+	var b strings.Builder
+	for i := 0; i < 2001; i++ {
+		b.WriteString("x\n")
+	}
+	path := readTestWriteFile(t, dir, "many.txt", b.String())
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdRead(path, "", 0, true); err != nil {
+			t.Fatalf("cmdRead json truncation returned error: %v", err)
+		}
+	})
+
+	r := readTestParseJSON(t, output)
+	if !r.OK {
+		t.Fatalf("ok = false; want true")
+	}
+	if !r.Truncated {
+		t.Fatalf("truncated = false; want true")
+	}
+	if len(r.Lines) != 2000 {
+		t.Fatalf("lines count = %d; want 2000", len(r.Lines))
+	}
+	if r.NextOffset != 2001 {
+		t.Fatalf("nextOffset = %d; want 2001", r.NextOffset)
+	}
+	if r.Lines[0].Line != 1 {
+		t.Fatalf("lines[0].line = %d; want 1", r.Lines[0].Line)
+	}
+	if r.Lines[1999].Line != 2000 {
+		t.Fatalf("lines[1999].line = %d; want 2000", r.Lines[1999].Line)
+	}
+}
+
+func TestCmdReadRangeJSONRange(t *testing.T) {
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "range.txt", "one\ntwo\nthree\nfour\nfive\n")
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdReadRange(path, 2, 2, "", 0, true); err != nil {
+			t.Fatalf("cmdReadRange json returned error: %v", err)
+		}
+	})
+
+	r := readTestParseJSON(t, output)
+	if !r.OK {
+		t.Fatalf("ok = false; want true")
+	}
+	if !r.Truncated {
+		t.Fatalf("truncated = false; want true")
+	}
+	if r.NextOffset != 4 {
+		t.Fatalf("nextOffset = %d; want 4", r.NextOffset)
+	}
+	if len(r.Lines) != 2 {
+		t.Fatalf("lines count = %d; want 2", len(r.Lines))
+	}
+	if r.Lines[0].Line != 2 || r.Lines[0].Text != "two" {
+		t.Fatalf("lines[0] = %+v; want line=2 text=two", r.Lines[0])
+	}
+	if r.Lines[1].Line != 3 || r.Lines[1].Text != "three" {
+		t.Fatalf("lines[1] = %+v; want line=3 text=three", r.Lines[1])
+	}
+}
+
+func TestCmdReadJSONGrepNoContext(t *testing.T) {
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "grep.txt", grepFixture)
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdRead(path, "match", 0, true); err != nil {
+			t.Fatalf("cmdRead json grep returned error: %v", err)
+		}
+	})
+
+	r := readTestParseJSON(t, output)
+	if !r.OK {
+		t.Fatalf("ok = false; want true")
+	}
+	if r.Truncated {
+		t.Fatalf("truncated = true; want false")
+	}
+	if len(r.Lines) != 1 {
+		t.Fatalf("lines count = %d; want 1", len(r.Lines))
+	}
+	if r.Lines[0].Line != 3 || r.Lines[0].Text != "match-me" {
+		t.Fatalf("lines[0] = %+v; want line=3 text=match-me", r.Lines[0])
+	}
+	if r.Lines[0].Anchor != formatTag(3, "match-me") {
+		t.Fatalf("lines[0].anchor = %q; want %q", r.Lines[0].Anchor, formatTag(3, "match-me"))
+	}
+}
+
+func TestCmdReadJSONGrepContext(t *testing.T) {
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "ctx.txt", grepFixture)
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdRead(path, "match", 1, true); err != nil {
+			t.Fatalf("cmdRead json grep context returned error: %v", err)
+		}
+	})
+
+	r := readTestParseJSON(t, output)
+	if !r.OK {
+		t.Fatalf("ok = false; want true")
+	}
+	if r.Truncated {
+		t.Fatalf("truncated = true; want false")
+	}
+	// match on line 3, context=1 → lines 2,3,4
+	if len(r.Lines) != 3 {
+		t.Fatalf("lines count = %d; want 3", len(r.Lines))
+	}
+	wantNums := []int{2, 3, 4}
+	wantTexts := []string{"beta", "match-me", "delta"}
+	for i, wn := range wantNums {
+		if r.Lines[i].Line != wn || r.Lines[i].Text != wantTexts[i] {
+			t.Fatalf("lines[%d] = %+v; want line=%d text=%s", i, r.Lines[i], wn, wantTexts[i])
+		}
+	}
+}
+
+func TestCmdReadJSONNoMatchReturnsEmptyArray(t *testing.T) {
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "nomatch.txt", grepFixture)
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdRead(path, "zzz-no-match", 0, true); err != nil {
+			t.Fatalf("cmdRead json no-match returned error: %v", err)
+		}
+	})
+
+	r := readTestParseJSON(t, output)
+	if !r.OK {
+		t.Fatalf("ok = false; want true")
+	}
+	if r.Lines == nil {
+		t.Fatalf("lines = null; want empty array []")
+	}
+	if len(r.Lines) != 0 {
+		t.Fatalf("lines count = %d; want 0", len(r.Lines))
+	}
+	// Verify the raw JSON has "lines":[] not "lines":null
+	if !strings.Contains(output, `"lines":[]`) {
+		t.Fatalf("output missing \"lines\":[]; got %q", output)
 	}
 }

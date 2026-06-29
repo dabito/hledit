@@ -113,6 +113,52 @@ func emitAnnotatedLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, m
 	return emittedCount
 }
 
+// collectAnnotatedLines gathers lines into ReadLine structs with truncation metadata.
+// Mirrors emitAnnotatedLines byte/line limits exactly.
+func collectAnnotatedLines(lines []string, startIdx, maxLines, maxBytes int) ([]ReadLine, bool, int) {
+	result := make([]ReadLine, 0)
+	byteCount := 0
+	for i := startIdx; i < len(lines); i++ {
+		lineNum := i + 1
+		line := lines[i]
+		tag := formatTag(lineNum, line)
+		byteCount += len(tag) + 1 + len(line) + 1 // tag + ":" + line + "\n"
+		result = append(result, ReadLine{Line: lineNum, Anchor: tag, Text: line})
+		if len(result) >= maxLines || byteCount >= maxBytes {
+			if i < len(lines)-1 {
+				return result, true, i + 2
+			}
+			break
+		}
+	}
+	return result, false, 0
+}
+
+// collectMatchLines gathers matching lines into ReadLine structs with truncation metadata.
+// matchIdxs are 1-indexed line numbers into lines.
+func collectMatchLines(lines []string, matchIdxs []int, offset, maxLines int) ([]ReadLine, bool, int) {
+	startIdx := len(matchIdxs)
+	for i, ln := range matchIdxs {
+		if ln >= offset {
+			startIdx = i
+			break
+		}
+	}
+	result := make([]ReadLine, 0)
+	for i := startIdx; i < len(matchIdxs) && len(result) < maxLines; i++ {
+		ln := matchIdxs[i]
+		line := lines[ln-1]
+		tag := formatTag(ln, line)
+		result = append(result, ReadLine{Line: ln, Anchor: tag, Text: line})
+	}
+	remaining := len(matchIdxs) - startIdx - len(result)
+	if remaining > 0 {
+		lastLn := matchIdxs[startIdx+len(result)-1]
+		return result, true, lastLn + 1
+	}
+	return result, false, 0
+}
+
 // emitMatchLines writes only matching LN#HASH:content lines with pagination info.
 // matchIdxs are 1-indexed line numbers into lines.
 func emitMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, maxLines int) {
@@ -140,14 +186,28 @@ func emitMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, 
 	}
 }
 
-func cmdRead(path, grep string, contextN int) error {
+func cmdRead(path, grep string, contextN int, jsonOut bool) error {
 	lines, errored := readFileLines(path)
 	if errored {
 		return nil
 	}
 
-	var buf bytes.Buffer
 	matchIdxs := filterLines(lines, grep)
+
+	if jsonOut {
+		var readLines []ReadLine
+		var truncated bool
+		var nextOffset int
+		if matchIdxs != nil {
+			matchIdxs = applyContext(lines, matchIdxs, contextN)
+			readLines, truncated, nextOffset = collectMatchLines(lines, matchIdxs, 1, 2000)
+		} else {
+			readLines, truncated, nextOffset = collectAnnotatedLines(lines, 0, 2000, 50*1024)
+		}
+		return emitJSON(ReadResult{OK: true, Lines: readLines, Truncated: truncated, NextOffset: nextOffset})
+	}
+
+	var buf bytes.Buffer
 	if matchIdxs != nil {
 		matchIdxs = applyContext(lines, matchIdxs, contextN)
 		emitMatchLines(&buf, lines, matchIdxs, 1, 2000)
@@ -158,7 +218,7 @@ func cmdRead(path, grep string, contextN int) error {
 	return nil
 }
 
-func cmdReadRange(path string, offset, limit int, grep string, contextN int) error {
+func cmdReadRange(path string, offset, limit int, grep string, contextN int, jsonOut bool) error {
 	lines, errored := readFileLines(path)
 	if errored {
 		return nil
@@ -177,9 +237,22 @@ func cmdReadRange(path string, offset, limit int, grep string, contextN int) err
 		maxLines = 2000
 	}
 
-	var buf bytes.Buffer
-
 	matchIdxs := filterLines(lines, grep)
+
+	if jsonOut {
+		var readLines []ReadLine
+		var truncated bool
+		var nextOffset int
+		if matchIdxs != nil {
+			matchIdxs = applyContext(lines, matchIdxs, contextN)
+			readLines, truncated, nextOffset = collectMatchLines(lines, matchIdxs, offset, maxLines)
+		} else {
+			readLines, truncated, nextOffset = collectAnnotatedLines(lines, offset-1, maxLines, 50*1024)
+		}
+		return emitJSON(ReadResult{OK: true, Lines: readLines, Truncated: truncated, NextOffset: nextOffset})
+	}
+
+	var buf bytes.Buffer
 	if matchIdxs != nil {
 		matchIdxs = applyContext(lines, matchIdxs, contextN)
 		emitMatchLines(&buf, lines, matchIdxs, offset, maxLines)

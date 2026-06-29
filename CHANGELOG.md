@@ -14,6 +14,7 @@
 
 - Document batch JSON range semantics and update the public CLI version.
 - Add read/read-range `--grep` substring filtering and `--context` surrounding-line windows.
+- Add `--json` on `read` / `read-range` with structured output.
 
 ### Changed
 

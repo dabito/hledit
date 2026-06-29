@@ -47,17 +47,17 @@ func TestSupplementalReadLongFileAndRangeBranches(t *testing.T) {
 	long := strings.Repeat("a", 9000) + "\nsecond\n"
 	path := coverageTestWriteFile(t, dir, "long.txt", long)
 
-	out := coverageTestCaptureStdout(t, func() { _ = cmdRead(path, "", 0) })
+	out := coverageTestCaptureStdout(t, func() { _ = cmdRead(path, "", 0, false) })
 	if !strings.HasPrefix(out, "1#") || !strings.Contains(out, strings.Repeat("a", 32)) {
 		t.Fatalf("cmdRead long-file output unexpected prefix: %.80q", out)
 	}
 
-	out = coverageTestCaptureStdout(t, func() { _ = cmdReadRange(path, 1, 0, "", 0) })
+	out = coverageTestCaptureStdout(t, func() { _ = cmdReadRange(path, 1, 0, "", 0, false) })
 	if !strings.Contains(out, "1#") || !strings.Contains(out, "2#") {
 		t.Fatalf("cmdReadRange limit<=0 output unexpected: %q", out)
 	}
 
-	out = coverageTestCaptureStdout(t, func() { _ = cmdReadRange(filepath.Join(dir, "missing.txt"), 1, 1, "", 0) })
+	out = coverageTestCaptureStdout(t, func() { _ = cmdReadRange(filepath.Join(dir, "missing.txt"), 1, 1, "", 0, false) })
 	if !strings.Contains(out, `"error":"io"`) {
 		t.Fatalf("missing read-range did not emit io error: %s", out)
 	}
@@ -66,7 +66,7 @@ func TestSupplementalReadLongFileAndRangeBranches(t *testing.T) {
 	if err := os.WriteFile(bin, []byte("prefix\x00suffix"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	out = coverageTestCaptureStdout(t, func() { _ = cmdReadRange(bin, 1, 1, "", 0) })
+	out = coverageTestCaptureStdout(t, func() { _ = cmdReadRange(bin, 1, 1, "", 0, false) })
 	if !strings.Contains(out, `"error":"binary"`) {
 		t.Fatalf("binary read-range did not emit binary error: %s", out)
 	}

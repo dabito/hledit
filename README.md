@@ -100,8 +100,8 @@ export HLEDIT_BIN="$HOME/go/bin/hledit"
 ## Commands
 
 ```text
-hledit read <file> [--grep pattern] [--context N]
-hledit read-range <file> [--offset N] [--limit M] [--grep pattern] [--context N]
+hledit read <file> [--grep pattern] [--context N] [--json]
+hledit read-range <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json]
 hledit replace <file> <anchor> <content-source>
 hledit replace-range <file> <anchor> <end-anchor> <content-source>
 hledit insert [--before|--after] <file> <anchor> <content-source>
@@ -158,6 +158,7 @@ printf '' | hledit replace-range main.go 12#NK 18#VR -
 ## Output
 
 Read commands emit annotated text:
+`--json` emits `{ok, lines:[{line,anchor,text}], truncated, nextOffset}`.
 
 ```text
 1#WV:package main
