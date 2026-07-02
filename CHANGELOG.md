@@ -1,4 +1,11 @@
 # Changelog
+
+## [1.1.1] — 2026-07-01
+
+### Changed
+
+- Add README requirements, development, failure-mode, and agent-family guidance.
+- Add Unicode JSON and complex Markdown golden fixtures for UTF-8 and larger-doc coverage.
 ## [1.1.0] — 2026-06-29
 
 ### Changed

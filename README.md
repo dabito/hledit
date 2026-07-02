@@ -12,9 +12,41 @@ Instead of asking an agent to reproduce old text exactly, `hledit read` annotate
 
 Write commands reference anchors such as `6#MX`. Before changing the file, `hledit` recomputes the hash at that line. If the file changed since it was read, the anchor is rejected and no write happens.
 
+## Why
+
+Traditional text-matching edits fail silently when a file shifts between read and write. `hledit` fails loud on stale anchors so agents patch the right line or stop.
+
+Built for AI coding agents: small local tools, typed inputs, deterministic text output, bounded context, and explicit failure modes.
+
+## Demo
+
+![hledit stale-edit demo](docs/demo/hledit.gif)
+
+Recorded terminal demo source: [`docs/demo/hledit.cast`](docs/demo/hledit.cast)
+
+Play locally:
+
+```bash
+asciinema play docs/demo/hledit.cast
+```
+
+The demo shows:
+
+- `hledit read` producing `LN#ANCHOR` references
+- another actor changing the target line
+- stale edit rejection with `{"ok":false,"error":"stale"}`
+- re-read with fresh anchor
+- successful edit after anchor refresh
+
 ## Install
 
 `hledit` is a standalone CLI. You do not need Pi or `pi-hledit` to use it.
+
+## Requirements
+
+- Go 1.21+
+- A POSIX-like shell for the examples
+- Pi is optional; only needed for `pi-hledit`
 
 ### Option 1: install with Go
 
@@ -73,6 +105,14 @@ Build without installing:
 ```bash
 make build
 # writes dist/hledit
+```
+
+## Development
+
+```bash
+go test ./...
+go vet ./...
+make check
 ```
 
 ## Optional Pi integration
@@ -206,6 +246,20 @@ Anchors are `LN#HH`:
 - All anchors in a write are validated before writing.
 - Logical failures (`stale`, `invalid`, `binary`, `range`, `io`) are reported as JSON on stdout.
 - CLI misuse exits `2`; unrecoverable infrastructure failures exit `1`; normal logical outcomes exit `0`.
+
+## Failure modes
+
+- stale anchor -> re-read and retry
+- binary file -> stop and use a text file
+- invalid anchor or CLI misuse -> fix args
+- I/O error -> check path and permissions
+- text `read` output may append a truncation sentinel; use `--json` for machine parsing
+
+## When not to use it
+
+- binary files
+- minified or positional-only edits where anchors add no value
+- workflows that need fuzzy matching instead of stale-safe rejection
 
 ## Credits and prior art
 
