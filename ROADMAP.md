@@ -75,7 +75,6 @@ checksums.txt
 
 - Keep the `Makefile` workflow simple.
 - Keep tests fully offline and deterministic.
-- Consider adding CI (`go test ./...`, `go vet ./...`) before release tooling.
 - Add a human-readable `--pretty` mode for `read` and `read-range` while keeping the default agent-facing output unchanged.
 - Consider shell completions (`hledit completion zsh|bash|fish`) now that `anchors` exists.
 - Revisit GoReleaser once the module has a public repository path and version tags.
