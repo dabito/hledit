@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] — 2026-07-07
+
+### Changed
+
+- Use an ASCII pipe divider in `--pretty` output for safer terminal rendering.
+
 ## [1.2.1] — 2026-07-07
 
 ### Changed

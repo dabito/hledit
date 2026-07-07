@@ -8,7 +8,7 @@ import (
 const (
 	ansiReset           = "\x1b[0m"
 	ansiDim             = "\x1b[2m"
-	prettyReadSeparator = "\t︙ "
+	prettyReadSeparator = "\t| "
 	ansiBoldCyan        = "\x1b[1;36m"
 )
 
