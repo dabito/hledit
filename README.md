@@ -137,6 +137,16 @@ The extension registers a single `hledit` tool with an `op` parameter (`read`, `
 export HLEDIT_BIN="$HOME/go/bin/hledit"
 ```
 
+## Optional MCP integration
+
+The MCP server is a separate package: [`hledit-mcp`](https://github.com/dabito/hledit-mcp). It wraps this CLI for MCP-compatible clients such as Claude Code, Claude Desktop, and Cursor.
+
+Install after installing the CLI:
+
+```bash
+claude mcp add hledit npx hledit-mcp
+```
+
 ## Commands
 
 ```text
