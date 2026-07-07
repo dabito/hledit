@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "1.1.2"
+const version = "1.2.0"
 
 // splitArgs separates a command's args into flags and positionals so that
 // flags may appear before OR after the positional file argument (e.g.
@@ -16,7 +16,7 @@ const version = "1.1.2"
 func splitArgs(args []string) (positionals []string, flags []string) {
 	// Flags that take a value ("-x v" form) in our subcommands.
 	valueFlags := map[string]bool{"-offset": true, "--offset": true, "-limit": true, "--limit": true, "-grep": true, "--grep": true, "-context": true, "--context": true}
-	boolFlags := map[string]bool{"--before": true, "--after": true, "--json": true, "-json": true, "--check": true, "-check": true}
+	boolFlags := map[string]bool{"--before": true, "--after": true, "--json": true, "-json": true, "--pretty": true, "-pretty": true, "--check": true, "-check": true}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if a == "-" {
@@ -48,9 +48,9 @@ const usage = `hledit — hash-anchored line editor for AI coding agents
 
 Usage:
   hledit --version
-  hledit read <file> [--grep <pattern>] [--context N] [--json]
-  hledit read-range <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json]
-  hledit anchors <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json]
+  hledit read <file> [--grep <pattern>] [--context N] [--json] [--pretty]
+  hledit read-range <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
+  hledit anchors <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
   hledit replace <file> <anchor> <content-source>
   hledit replace-range <file> <anchor> <end-anchor> <content-source>
   hledit insert [--before|--after] <file> <anchor> <content-source>
@@ -113,13 +113,14 @@ func run(argv []string) int {
 		fs := flag.NewFlagSet("read", flag.ExitOnError)
 		grep := fs.String("grep", "", "filter lines by substring match")
 		contextN := fs.Int("context", 0, "include N surrounding lines for each grep match")
+		pretty := fs.Bool("pretty", false, "emit ANSI-styled text for human reading")
 		jsonOut := fs.Bool("json", false, "emit structured JSON instead of annotated text")
 		fs.Parse(flagArgs)
 		if len(positionals) != 1 {
 			fmt.Fprint(os.Stderr, usage)
 			return 2
 		}
-		return mustRun(cmdRead(positionals[0], *grep, *contextN, *jsonOut))
+		return mustRun(cmdReadPretty(positionals[0], *grep, *contextN, *jsonOut, *pretty))
 
 	case "read-range":
 		positionals, flagArgs := splitArgs(args)
@@ -128,13 +129,14 @@ func run(argv []string) int {
 		limit := fs.Int("limit", 2000, "max lines to return")
 		grep := fs.String("grep", "", "filter lines by substring match")
 		contextN := fs.Int("context", 0, "include N surrounding lines for each grep match")
+		pretty := fs.Bool("pretty", false, "emit ANSI-styled text for human reading")
 		jsonOut := fs.Bool("json", false, "emit structured JSON instead of annotated text")
 		fs.Parse(flagArgs)
 		if len(positionals) != 1 {
 			fmt.Fprint(os.Stderr, usage)
 			return 2
 		}
-		return mustRun(cmdReadRange(positionals[0], *offset, *limit, *grep, *contextN, *jsonOut))
+		return mustRun(cmdReadRangePretty(positionals[0], *offset, *limit, *grep, *contextN, *jsonOut, *pretty))
 
 	case "anchors":
 		positionals, flagArgs := splitArgs(args)
@@ -143,13 +145,14 @@ func run(argv []string) int {
 		limit := fs.Int("limit", 2000, "max lines to return")
 		grep := fs.String("grep", "", "filter lines by substring match")
 		contextN := fs.Int("context", 0, "include N surrounding lines for each grep match")
+		pretty := fs.Bool("pretty", false, "emit ANSI-styled text for human reading")
 		jsonOut := fs.Bool("json", false, "emit structured JSON instead of annotated text")
 		fs.Parse(flagArgs)
 		if len(positionals) != 1 {
 			fmt.Fprint(os.Stderr, usage)
 			return 2
 		}
-		return mustRun(cmdAnchors(positionals[0], *offset, *limit, *grep, *contextN, *jsonOut))
+		return mustRun(cmdAnchorsPretty(positionals[0], *offset, *limit, *grep, *contextN, *jsonOut, *pretty))
 
 	case "replace":
 		if len(args) != 3 {

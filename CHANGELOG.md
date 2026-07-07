@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] — 2026-07-01
+
+### Added
+
+- Add `--pretty` ANSI-styled human output for `read`, `read-range`, and `anchors` while keeping default and JSON output unchanged.
+
 ## [1.1.2] — 2026-07-01
 
 ### Changed

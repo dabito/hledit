@@ -632,3 +632,59 @@ func TestCmdReadJSONNoMatchReturnsEmptyArray(t *testing.T) {
 		t.Fatalf("output missing \"lines\":[]; got %q", output)
 	}
 }
+
+func TestCmdReadPrettyStylesAnchor(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "pretty.txt", "alpha\n")
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdReadPretty(path, "", 0, false, true); err != nil {
+			t.Fatalf("cmdReadPretty returned error: %v", err)
+		}
+	})
+
+	if !strings.Contains(output, "\x1b[") {
+		t.Fatalf("pretty output missing ANSI escapes: %q", output)
+	}
+	if !strings.Contains(output, "alpha") {
+		t.Fatalf("pretty output missing line text: %q", output)
+	}
+}
+
+func TestCmdReadPrettyRespectsNoColor(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "pretty-no-color.txt", "alpha\n")
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdReadPretty(path, "", 0, false, true); err != nil {
+			t.Fatalf("cmdReadPretty returned error: %v", err)
+		}
+	})
+
+	want := formatTag(1, "alpha") + ":alpha\n"
+	if output != want {
+		t.Fatalf("NO_COLOR pretty output = %q; want %q", output, want)
+	}
+}
+
+func TestCmdReadPrettyIgnoredForJSON(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "pretty-json.txt", "alpha\n")
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdReadPretty(path, "", 0, true, true); err != nil {
+			t.Fatalf("cmdReadPretty json returned error: %v", err)
+		}
+	})
+
+	if strings.Contains(output, "\x1b[") {
+		t.Fatalf("json output should not contain ANSI escapes: %q", output)
+	}
+	r := readTestParseJSON(t, output)
+	if !r.OK || len(r.Lines) != 1 || r.Lines[0].Text != "alpha" {
+		t.Fatalf("json result unexpected: %+v", r)
+	}
+}

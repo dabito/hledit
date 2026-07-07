@@ -92,20 +92,27 @@ func applyContext(lines []string, matchIdxs []int, contextN int) []int {
 
 // emitAnnotatedLines writes LN#HASH:content lines to a buffer with truncation.
 // Returns the number of content lines emitted.
-func emitAnnotatedLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxBytes int) int {
+func emitAnnotatedLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxBytes int, pretty bool) int {
 	emittedCount := 0
+	usePretty := prettyEnabled(pretty)
 	for i := startIdx; i < len(lines); i++ {
 		lineNum := i + 1
 		line := lines[i]
-		tag := formatTag(lineNum, line)
-		lineStr := tag + ":" + line + "\n"
+		lineStr := formatPlainReadLine(lineNum, line) + "\n"
+		if usePretty {
+			lineStr = formatPrettyReadLine(lineNum, line) + "\n"
+		}
 
 		buf.WriteString(lineStr)
 		emittedCount++
 
 		if emittedCount >= maxLines || buf.Len() >= maxBytes {
 			if i < len(lines)-1 {
-				buf.WriteString(fmt.Sprintf("-- truncated: use read-range --offset %d --\n", i+2))
+				notice := fmt.Sprintf("-- truncated: use read-range --offset %d --", i+2)
+				if usePretty {
+					notice = formatPrettyNotice(notice)
+				}
+				buf.WriteString(notice + "\n")
 			}
 			break
 		}
@@ -161,7 +168,7 @@ func collectMatchLines(lines []string, matchIdxs []int, offset, maxLines int) ([
 
 // emitMatchLines writes only matching LN#HASH:content lines with pagination info.
 // matchIdxs are 1-indexed line numbers into lines.
-func emitMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, maxLines int) {
+func emitMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, maxLines int, pretty bool) {
 	startIdx := len(matchIdxs)
 	for i, ln := range matchIdxs {
 		if ln >= offset {
@@ -170,23 +177,35 @@ func emitMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, 
 		}
 	}
 
+	usePretty := prettyEnabled(pretty)
 	count := 0
 	for i := startIdx; i < len(matchIdxs) && count < maxLines; i++ {
 		ln := matchIdxs[i]
 		line := lines[ln-1]
-		tag := formatTag(ln, line)
-		buf.WriteString(tag + ":" + line + "\n")
+		lineStr := formatPlainReadLine(ln, line)
+		if usePretty {
+			lineStr = formatPrettyReadLine(ln, line)
+		}
+		buf.WriteString(lineStr + "\n")
 		count++
 	}
 
 	remaining := len(matchIdxs) - startIdx - count
 	if remaining > 0 {
 		lastLn := matchIdxs[startIdx+count-1]
-		buf.WriteString(fmt.Sprintf("-- %d more matches, use offset %d --\n", remaining, lastLn+1))
+		notice := fmt.Sprintf("-- %d more matches, use offset %d --", remaining, lastLn+1)
+		if usePretty {
+			notice = formatPrettyNotice(notice)
+		}
+		buf.WriteString(notice + "\n")
 	}
 }
 
 func cmdRead(path, grep string, contextN int, jsonOut bool) error {
+	return cmdReadPretty(path, grep, contextN, jsonOut, false)
+}
+
+func cmdReadPretty(path, grep string, contextN int, jsonOut bool, pretty bool) error {
 	lines, errored := readFileLines(path)
 	if errored {
 		return nil
@@ -210,29 +229,36 @@ func cmdRead(path, grep string, contextN int, jsonOut bool) error {
 	var buf bytes.Buffer
 	if matchIdxs != nil {
 		matchIdxs = applyContext(lines, matchIdxs, contextN)
-		emitMatchLines(&buf, lines, matchIdxs, 1, 2000)
+		emitMatchLines(&buf, lines, matchIdxs, 1, 2000, pretty)
 	} else {
-		emitAnnotatedLines(&buf, lines, 0, 2000, 50*1024)
+		emitAnnotatedLines(&buf, lines, 0, 2000, 50*1024, pretty)
 	}
 	fmt.Print(buf.String())
 	return nil
 }
 
 // emitAnchorLines writes ANCHOR\tTEXT lines (completion-friendly) with truncation.
-func emitAnchorLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxBytes int) {
+func emitAnchorLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxBytes int, pretty bool) {
 	emittedCount := 0
+	usePretty := prettyEnabled(pretty)
 	for i := startIdx; i < len(lines); i++ {
 		lineNum := i + 1
 		line := lines[i]
-		tag := formatTag(lineNum, line)
-		lineStr := tag + "\t" + line + "\n"
+		lineStr := formatPlainAnchorLine(lineNum, line) + "\n"
+		if usePretty {
+			lineStr = formatPrettyAnchorLine(lineNum, line) + "\n"
+		}
 
 		buf.WriteString(lineStr)
 		emittedCount++
 
 		if emittedCount >= maxLines || buf.Len() >= maxBytes {
 			if i < len(lines)-1 {
-				buf.WriteString(fmt.Sprintf("-- truncated: use anchors --offset %d --\n", i+2))
+				notice := fmt.Sprintf("-- truncated: use anchors --offset %d --", i+2)
+				if usePretty {
+					notice = formatPrettyNotice(notice)
+				}
+				buf.WriteString(notice + "\n")
 			}
 			break
 		}
@@ -240,7 +266,7 @@ func emitAnchorLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxB
 }
 
 // emitAnchorMatchLines writes matching ANCHOR\tTEXT lines with pagination notice.
-func emitAnchorMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, maxLines int) {
+func emitAnchorMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, maxLines int, pretty bool) {
 	startIdx := len(matchIdxs)
 	for i, ln := range matchIdxs {
 		if ln >= offset {
@@ -249,23 +275,35 @@ func emitAnchorMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, of
 		}
 	}
 
+	usePretty := prettyEnabled(pretty)
 	count := 0
 	for i := startIdx; i < len(matchIdxs) && count < maxLines; i++ {
 		ln := matchIdxs[i]
 		line := lines[ln-1]
-		tag := formatTag(ln, line)
-		buf.WriteString(tag + "\t" + line + "\n")
+		lineStr := formatPlainAnchorLine(ln, line)
+		if usePretty {
+			lineStr = formatPrettyAnchorLine(ln, line)
+		}
+		buf.WriteString(lineStr + "\n")
 		count++
 	}
 
 	remaining := len(matchIdxs) - startIdx - count
 	if remaining > 0 {
 		lastLn := matchIdxs[startIdx+count-1]
-		buf.WriteString(fmt.Sprintf("-- %d more matches, use offset %d --\n", remaining, lastLn+1))
+		notice := fmt.Sprintf("-- %d more matches, use offset %d --", remaining, lastLn+1)
+		if usePretty {
+			notice = formatPrettyNotice(notice)
+		}
+		buf.WriteString(notice + "\n")
 	}
 }
 
 func cmdAnchors(path string, offset, limit int, grep string, contextN int, jsonOut bool) error {
+	return cmdAnchorsPretty(path, offset, limit, grep, contextN, jsonOut, false)
+}
+
+func cmdAnchorsPretty(path string, offset, limit int, grep string, contextN int, jsonOut bool, pretty bool) error {
 	lines, errored := readFileLines(path)
 	if errored {
 		return nil
@@ -302,9 +340,9 @@ func cmdAnchors(path string, offset, limit int, grep string, contextN int, jsonO
 	var buf bytes.Buffer
 	if matchIdxs != nil {
 		matchIdxs = applyContext(lines, matchIdxs, contextN)
-		emitAnchorMatchLines(&buf, lines, matchIdxs, offset, maxLines)
+		emitAnchorMatchLines(&buf, lines, matchIdxs, offset, maxLines, pretty)
 	} else {
-		emitAnchorLines(&buf, lines, offset-1, maxLines, 50*1024)
+		emitAnchorLines(&buf, lines, offset-1, maxLines, 50*1024, pretty)
 	}
 
 	fmt.Print(buf.String())
@@ -312,6 +350,10 @@ func cmdAnchors(path string, offset, limit int, grep string, contextN int, jsonO
 }
 
 func cmdReadRange(path string, offset, limit int, grep string, contextN int, jsonOut bool) error {
+	return cmdReadRangePretty(path, offset, limit, grep, contextN, jsonOut, false)
+}
+
+func cmdReadRangePretty(path string, offset, limit int, grep string, contextN int, jsonOut bool, pretty bool) error {
 	lines, errored := readFileLines(path)
 	if errored {
 		return nil
@@ -348,9 +390,9 @@ func cmdReadRange(path string, offset, limit int, grep string, contextN int, jso
 	var buf bytes.Buffer
 	if matchIdxs != nil {
 		matchIdxs = applyContext(lines, matchIdxs, contextN)
-		emitMatchLines(&buf, lines, matchIdxs, offset, maxLines)
+		emitMatchLines(&buf, lines, matchIdxs, offset, maxLines, pretty)
 	} else {
-		emitAnnotatedLines(&buf, lines, offset-1, maxLines, 50*1024)
+		emitAnnotatedLines(&buf, lines, offset-1, maxLines, 50*1024, pretty)
 	}
 
 	fmt.Print(buf.String())

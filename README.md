@@ -140,16 +140,16 @@ export HLEDIT_BIN="$HOME/go/bin/hledit"
 ## Commands
 
 ```text
-hledit read <file> [--grep pattern] [--context N] [--json]
-hledit read-range <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json]
-hledit anchors <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json]
+hledit read <file> [--grep pattern] [--context N] [--json] [--pretty]
+hledit read-range <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json] [--pretty]
+hledit anchors <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json] [--pretty]
 hledit replace <file> <anchor> <content-source>
 hledit replace-range <file> <anchor> <end-anchor> <content-source>
 hledit insert [--before|--after] <file> <anchor> <content-source>
 hledit batch [--check] <file>
 ```
 
-`--grep` matches substrings. `--context N` adds N lines before/after each match.
+`--grep` matches substrings. `--context N` adds N lines before/after each match. `--pretty` adds ANSI styling for human reading; `--json` stays machine-readable and unstyled.
 `<content-source>` is either `-` for stdin or a file path.
 
 ## Examples
@@ -164,6 +164,12 @@ Read a window of a large file:
 
 ```bash
 hledit read-range main.go --offset 40 --limit 20
+
+Read styled output for humans:
+
+```bash
+hledit read main.go --pretty
+```
 ```
 
 Replace one line using stdin:
