@@ -647,6 +647,9 @@ func TestCmdReadPrettyStylesAnchor(t *testing.T) {
 	if !strings.Contains(output, "\x1b[") {
 		t.Fatalf("pretty output missing ANSI escapes: %q", output)
 	}
+	if !strings.Contains(output, prettyReadSeparator) {
+		t.Fatalf("pretty output missing separator %q: %q", prettyReadSeparator, output)
+	}
 	if !strings.Contains(output, "alpha") {
 		t.Fatalf("pretty output missing line text: %q", output)
 	}

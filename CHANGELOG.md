@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] — 2026-07-07
+
+### Changed
+
+- Improve `--pretty` readability by separating anchors from content with a tabbed vertical divider.
+
 ## [1.2.0] — 2026-07-01
 
 ### Added

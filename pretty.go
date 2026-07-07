@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	ansiReset    = "\x1b[0m"
-	ansiDim      = "\x1b[2m"
-	ansiBoldCyan = "\x1b[1;36m"
+	ansiReset           = "\x1b[0m"
+	ansiDim             = "\x1b[2m"
+	prettyReadSeparator = "\t︙ "
+	ansiBoldCyan        = "\x1b[1;36m"
 )
 
 func prettyEnabled(pretty bool) bool {
@@ -25,7 +26,7 @@ func formatPrettyReadLine(lineNum int, line string) string {
 	if len(parts) != 2 {
 		return tag + ":" + line
 	}
-	return ansiWrap(ansiDim, parts[0]) + ansiWrap(ansiDim, "#") + ansiWrap(ansiBoldCyan, parts[1]) + ansiWrap(ansiDim, ":") + line
+	return ansiWrap(ansiDim, parts[0]) + ansiWrap(ansiDim, "#") + ansiWrap(ansiBoldCyan, parts[1]) + ansiWrap(ansiDim, prettyReadSeparator) + line
 }
 
 func formatPrettyAnchorLine(lineNum int, line string) string {
