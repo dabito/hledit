@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.3] — 2026-07-07
+
+### Changed
+
+- Highlight braces, brackets, parentheses, and double-quoted strings in `--pretty` output.
+
 ## [1.2.2] — 2026-07-07
 
 ### Changed

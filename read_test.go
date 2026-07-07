@@ -655,6 +655,28 @@ func TestCmdReadPrettyStylesAnchor(t *testing.T) {
 	}
 }
 
+func TestCmdReadPrettyHighlightsContent(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	dir := t.TempDir()
+	path := readTestWriteFile(t, dir, "pretty-content.txt", "config := map[string]string{\"name\": \"hledit \\\"tool\\\"\"}\n")
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdReadPretty(path, "", 0, false, true); err != nil {
+			t.Fatalf("cmdReadPretty returned error: %v", err)
+		}
+	})
+
+	if !strings.Contains(output, ansiYellow+"["+ansiReset) || !strings.Contains(output, ansiYellow+"{"+ansiReset) {
+		t.Fatalf("pretty output missing bracket highlighting: %q", output)
+	}
+	if !strings.Contains(output, ansiGreen+"\"name\"") {
+		t.Fatalf("pretty output missing quoted string highlighting: %q", output)
+	}
+	if !strings.Contains(output, `\"tool\""`+ansiReset) {
+		t.Fatalf("pretty output did not keep escaped quote inside string: %q", output)
+	}
+}
+
 func TestCmdReadPrettyRespectsNoColor(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	dir := t.TempDir()
