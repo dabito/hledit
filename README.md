@@ -256,6 +256,10 @@ Anchors are `LN#HH`:
 - The hash uses FNV-1a 32-bit, normalized trailing whitespace, and the alphabet `ZPMQVRWSNKTXJBYH`.
 - Blank or punctuation-only lines mix the line number into the hash so identical structural lines are easier for models to distinguish.
 
+### Collision model
+
+`LN#HH` is a stale-context guard, not a cryptographic content ID. The line number narrows the check to the target line; the short hash catches ordinary stale edits while keeping anchors compact enough for agents to copy reliably. A hash collision on the same line is possible, so `hledit` does not claim perfect hashing or that corruption is impossible. If an edit returns `stale`, re-read and retry with the fresh anchor.
+
 ## Behavior notes
 
 - Writes are atomic: temp file + rename.

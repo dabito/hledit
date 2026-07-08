@@ -78,5 +78,6 @@ checksums.txt
 - Consider shell completions (`hledit completion zsh|bash|fish`) now that `anchors` exists.
 - Revisit GoReleaser once the module has a public repository path and version tags.
 - Consider structured `edits` param for `pi-hledit` batch tool (array of objects, not JSON string) so the RPC layer handles escaping. Eliminates model-generated malformed JSON with literal control characters. Requires schema coordination between CLI and extension.
+- Consider a configurable longer-anchor mode (for example 3-character hashes) if real-world collision reports or fair competitor benchmarks justify the extra visual noise.
 
 - Consider splitting `edit.go` into `helpers.go` + `batch.go` once docs/release work settles; current mixed file is publishable with strong contract tests, but the split keeps command logic easier to audit.
