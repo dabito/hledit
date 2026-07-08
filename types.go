@@ -32,6 +32,8 @@ type EditResult struct {
 	OK               bool     `json:"ok"`
 	FirstChangedLine int      `json:"firstChangedLine,omitempty"`
 	LastChangedLine  int      `json:"lastChangedLine,omitempty"`
+	LinesAdded       int      `json:"linesAdded"`
+	LinesDeleted     int      `json:"linesDeleted"`
 	Warnings         []string `json:"warnings,omitempty"`
 }
 
@@ -67,6 +69,8 @@ type BatchEditResult struct {
 	OK               bool `json:"ok"`
 	FirstChangedLine int  `json:"firstChangedLine,omitempty"`
 	LastChangedLine  int  `json:"lastChangedLine,omitempty"`
+	LinesAdded       int  `json:"linesAdded"`
+	LinesDeleted     int  `json:"linesDeleted"`
 	EditsApplied     int  `json:"editsApplied"`
 	Checked          bool `json:"checked,omitempty"`
 }

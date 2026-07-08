@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.4] — 2026-07-07
+
+### Changed
+
+- Report `linesAdded` and `linesDeleted` metadata on successful edit and batch operations.
+
 ## [1.2.3] — 2026-07-07
 
 ### Changed

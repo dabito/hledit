@@ -124,8 +124,11 @@ func TestCmdReplace(t *testing.T) {
 
 		var got EditResult
 		editTestMustUnmarshal(t, out, &got)
-		if !got.OK || got.FirstChangedLine != 2 {
-			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 2", got)
+		if !got.OK || got.FirstChangedLine != 2 || got.LinesAdded != 1 || got.LinesDeleted != 1 {
+			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 2 lines +1 -1", got)
+		}
+		if strings.Contains(out, "delta") {
+			t.Fatalf("cmdReplace output leaked replacement body: %q", out)
 		}
 
 		data, err := os.ReadFile(target)
@@ -149,8 +152,8 @@ func TestCmdReplace(t *testing.T) {
 
 		var got EditResult
 		editTestMustUnmarshal(t, out, &got)
-		if !got.OK || got.FirstChangedLine != 1 {
-			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 1", got)
+		if !got.OK || got.FirstChangedLine != 1 || got.LinesAdded != 0 || got.LinesDeleted != 1 {
+			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 1 lines +0 -1", got)
 		}
 
 		data, err := os.ReadFile(target)
@@ -203,8 +206,8 @@ func TestCmdReplace(t *testing.T) {
 
 		var got EditResult
 		editTestMustUnmarshal(t, out, &got)
-		if !got.OK || got.FirstChangedLine != 2 {
-			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 2", got)
+		if !got.OK || got.FirstChangedLine != 2 || got.LinesAdded != 2 || got.LinesDeleted != 1 {
+			t.Fatalf("cmdReplace output = %#v; want ok true firstChangedLine 2 lines +2 -1", got)
 		}
 
 		data, err := os.ReadFile(target)

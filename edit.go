@@ -70,8 +70,8 @@ func emitJSONError(e EditError) error {
 	return emitJSON(e)
 }
 
-func emitResult(firstChanged, lastChanged int) error {
-	return emitJSON(EditResult{OK: true, FirstChangedLine: firstChanged, LastChangedLine: lastChanged})
+func emitResult(firstChanged, lastChanged, linesAdded, linesDeleted int) error {
+	return emitJSON(EditResult{OK: true, FirstChangedLine: firstChanged, LastChangedLine: lastChanged, LinesAdded: linesAdded, LinesDeleted: linesDeleted})
 }
 
 func emitStaleError(remaps []Remap, msg string) error {
@@ -106,12 +106,12 @@ func joinLines(lines []string, hadTrailingNewline bool) string {
 // It handles: loading, anchor validation, content reading, applying the edit,
 // atomic write with trailing newline preservation, and result emission.
 // apply is a callback that receives the current lines and new content lines,
-// and returns the resulting lines and the first changed line number.
+// and returns the resulting lines plus edit metadata.
 func editOp(
 	path string,
 	anchors []Anchor,
 	contentSrc string,
-	apply func(lines []string, newLines []string) (result []string, firstChanged int, lastChanged int, err error),
+	apply func(lines []string, newLines []string) (result []string, firstChanged int, lastChanged int, linesAdded int, linesDeleted int, err error),
 ) error {
 	lines, err := loadFileLines(path)
 	if err != nil {
@@ -137,7 +137,7 @@ func editOp(
 		return nil
 	}
 
-	result, firstChanged, lastChanged, aerr := apply(lines, newLines)
+	result, firstChanged, lastChanged, linesAdded, linesDeleted, aerr := apply(lines, newLines)
 	if aerr != nil {
 		emitInvalidError(aerr.Error())
 		return nil
@@ -150,7 +150,7 @@ func editOp(
 		return nil
 	}
 
-	emitResult(firstChanged, lastChanged)
+	emitResult(firstChanged, lastChanged, linesAdded, linesDeleted)
 	return nil
 }
 
@@ -161,11 +161,11 @@ func cmdReplace(path, anchorStr, contentSrc string) error {
 		return nil
 	}
 
-	return editOp(path, []Anchor{a}, contentSrc, func(lines, newLines []string) ([]string, int, int, error) {
+	return editOp(path, []Anchor{a}, contentSrc, func(lines, newLines []string) ([]string, int, int, int, int, error) {
 		before := append([]string{}, lines[:a.Line-1]...)
 		result := append(before, newLines...)
 		result = append(result, lines[a.Line:]...)
-		return result, a.Line, a.Line, nil
+		return result, a.Line, a.Line, len(newLines), 1, nil
 	})
 }
 
@@ -185,12 +185,12 @@ func cmdReplaceRange(path, anchorStr, endAnchorStr, contentSrc string) error {
 		return nil
 	}
 
-	return editOp(path, []Anchor{a, e}, contentSrc, func(lines, newLines []string) ([]string, int, int, error) {
+	return editOp(path, []Anchor{a, e}, contentSrc, func(lines, newLines []string) ([]string, int, int, int, int, error) {
 		before := lines[:a.Line-1]
 		after := lines[e.Line:]
 		result := append(append([]string{}, before...), newLines...)
 		result = append(result, after...)
-		return result, a.Line, e.Line, nil
+		return result, a.Line, e.Line, len(newLines), e.Line - a.Line + 1, nil
 	})
 }
 
@@ -201,9 +201,9 @@ func cmdInsert(path, anchorStr, contentSrc string, after bool) error {
 		return nil
 	}
 
-	return editOp(path, []Anchor{a}, contentSrc, func(lines, newLines []string) ([]string, int, int, error) {
+	return editOp(path, []Anchor{a}, contentSrc, func(lines, newLines []string) ([]string, int, int, int, int, error) {
 		if len(newLines) == 0 {
-			return nil, 0, 0, fmt.Errorf("insert requires non-empty content")
+			return nil, 0, 0, 0, 0, fmt.Errorf("insert requires non-empty content")
 		}
 		cutIdx := a.Line - 1
 		firstChanged := a.Line
@@ -214,7 +214,7 @@ func cmdInsert(path, anchorStr, contentSrc string, after bool) error {
 		result := append([]string{}, lines[:cutIdx]...)
 		result = append(result, newLines...)
 		result = append(result, lines[cutIdx:]...)
-		return result, firstChanged, firstChanged + len(newLines) - 1, nil
+		return result, firstChanged, firstChanged + len(newLines) - 1, len(newLines), 0, nil
 	})
 }
 
@@ -355,18 +355,30 @@ func cmdBatch(path string, checkOnly bool) error {
 		return nil
 	}
 
-	// Compute firstChanged and lastChanged across all edits.
+	// Compute firstChanged, lastChanged, and line deltas across all edits.
 	firstChanged := parsed[0].lineNum
 	lastChanged := 0
+	linesAdded := 0
+	linesDeleted := 0
 	for _, e := range parsed {
 		if e.lineNum < firstChanged {
 			firstChanged = e.lineNum
 		}
 		end := e.lineNum
-		if e.op == "insert" {
+		switch e.op {
+		case "insert":
 			end = e.lineNum + len(e.lines) - 1
-		} else if e.endPos != nil && e.endPos.Line > end {
-			end = e.endPos.Line
+			linesAdded += len(e.lines)
+		case "replace", "delete":
+			deleted := 1
+			if e.endPos != nil {
+				deleted = e.endPos.Line - e.pos.Line + 1
+				if e.endPos.Line > end {
+					end = e.endPos.Line
+				}
+			}
+			linesAdded += len(e.lines)
+			linesDeleted += deleted
 		}
 		if end > lastChanged {
 			lastChanged = end
@@ -378,6 +390,8 @@ func cmdBatch(path string, checkOnly bool) error {
 			OK:               true,
 			FirstChangedLine: firstChanged,
 			LastChangedLine:  lastChanged,
+			LinesAdded:       linesAdded,
+			LinesDeleted:     linesDeleted,
 			EditsApplied:     len(parsed),
 			Checked:          true,
 		})
@@ -424,6 +438,8 @@ func cmdBatch(path string, checkOnly bool) error {
 		OK:               true,
 		FirstChangedLine: firstChanged,
 		LastChangedLine:  lastChanged,
+		LinesAdded:       linesAdded,
+		LinesDeleted:     linesDeleted,
 		EditsApplied:     len(parsed),
 	})
 }

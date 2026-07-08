@@ -116,8 +116,11 @@ func TestCmdBatch(t *testing.T) {
 		if got.FirstChangedLine != 2 {
 			t.Fatalf("firstChangedLine = %d, want 2", got.FirstChangedLine)
 		}
-		if got.EditsApplied != 1 {
-			t.Fatalf("editsApplied = %d, want 1", got.EditsApplied)
+		if got.EditsApplied != 1 || got.LinesAdded != 1 || got.LinesDeleted != 2 {
+			t.Fatalf("batch metadata = %#v; want editsApplied 1 lines +1 -2", got)
+		}
+		if strings.Contains(out, "delta") {
+			t.Fatalf("batch output leaked edit body: %q", out)
 		}
 		if want := []string{"alpha", "delta", "delta"}; !equalLines(batchTestReadLines(t, target), want) {
 			t.Fatalf("target lines = %#v, want %#v", batchTestReadLines(t, target), want)
@@ -142,6 +145,9 @@ func TestCmdBatch(t *testing.T) {
 		}
 		if got.FirstChangedLine != 2 {
 			t.Fatalf("firstChangedLine = %d, want 2", got.FirstChangedLine)
+		}
+		if got.LinesAdded != 0 || got.LinesDeleted != 3 {
+			t.Fatalf("batch line deltas = +%d -%d; want +0 -3", got.LinesAdded, got.LinesDeleted)
 		}
 		if want := []string{"alpha"}; !equalLines(batchTestReadLines(t, target), want) {
 			t.Fatalf("target lines = %#v, want %#v", batchTestReadLines(t, target), want)
@@ -378,6 +384,9 @@ func TestCmdBatchCheck(t *testing.T) {
 		if got.LastChangedLine != 2 {
 			t.Fatalf("lastChangedLine = %d, want 2", got.LastChangedLine)
 		}
+		if got.LinesAdded != 1 || got.LinesDeleted != 1 {
+			t.Fatalf("check mode line deltas = +%d -%d; want +1 -1", got.LinesAdded, got.LinesDeleted)
+		}
 
 		// File must be unchanged
 		afterContent, _ := os.ReadFile(target)
@@ -407,6 +416,9 @@ func TestCmdBatchCheck(t *testing.T) {
 		}
 		if got.LastChangedLine != 3 {
 			t.Fatalf("lastChangedLine = %d, want 3", got.LastChangedLine)
+		}
+		if got.LinesAdded != 1 || got.LinesDeleted != 2 {
+			t.Fatalf("check range line deltas = +%d -%d; want +1 -2", got.LinesAdded, got.LinesDeleted)
 		}
 	})
 
