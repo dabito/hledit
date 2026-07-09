@@ -185,43 +185,43 @@ hledit read main.go --pretty
 Replace one line using stdin:
 
 ```bash
-printf '    fmt.Println("hello world")\n' | hledit replace main.go 6#MX -
+printf '    fmt.Println("hello world")\n' | hledit replace main.go 6#MXL -
 ```
 
 Replace a range using a prepared file:
 
 ```bash
-hledit replace-range main.go 12#NK 18#VR /tmp/new-block.txt
+hledit replace-range main.go 12#NKA 18#VRC /tmp/new-block.txt
 ```
 
 Insert before or after an anchor:
 
 ```bash
-cat header.txt | hledit insert --before main.go 1#WV -
-printf '// done\n' | hledit insert --after main.go 99#TX -
+cat header.txt | hledit insert --before main.go 1#QVE -
+printf '// done\n' | hledit insert --after main.go 99#TXA -
 ```
 Apply multiple edits atomically with JSON on stdin:
 
 ```bash
-printf '%s\n' '{"edits":[{"op":"replace","pos":"12#NK","end_pos":"18#VR","lines":["new block"]},{"op":"insert","pos":"22#VR","lines":["// inserted"]}]}' | hledit batch main.go
-echo '{"edits":[{"op":"replace","pos":"12#NK","lines":["fixed"]}]}' | hledit batch --check main.go
+printf '%s\n' '{"edits":[{"op":"replace","pos":"12#NKA","end_pos":"18#VRC","lines":["new block"]},{"op":"insert","pos":"22#VRB","lines":["// inserted"]}]}' | hledit batch main.go
+echo '{"edits":[{"op":"replace","pos":"12#NKA","lines":["fixed"]}]}' | hledit batch --check main.go
 ```
 Delete a line or range by piping empty stdin and using `-` as the content source:
 
 ```bash
-printf '' | hledit replace main.go 6#MX -
-printf '' | hledit replace-range main.go 12#NK 18#VR -
+printf '' | hledit replace main.go 6#MXL -
+printf '' | hledit replace-range main.go 12#NKA 18#VRC -
 ```
 
 ## Output
 
-Read emits `LN#HH:TEXT`; anchors emits `ANCHOR<TAB>TEXT`.
+Read emits `LN#HASH:TEXT`; anchors emits `ANCHOR<TAB>TEXT`.
 `--json` emits `{ok, lines:[{line,anchor,text}], truncated, nextOffset}`.
 
 ```text
-1#WV:package main
-2#VR:
-3#JB:import "fmt"
+1#QVE:package main
+2#2CF:
+3#V33:import "fmt"
 ```
 
 Write commands emit JSON:
@@ -242,23 +242,23 @@ Stale anchors are rejected atomically:
 {
   "ok": false,
   "error": "stale",
-  "message": "anchor 6#MX: stale",
-  "remaps": [{"requested":"6#MX","current":"6#MQ"}]
+  "message": "anchor 6#MXL: stale",
+  "remaps": [{"requested":"6#MXL","current":"6#MQA"}]
 }
 ```
 
 ## Hash format
 
-Anchors are `LN#HH`:
+Anchors are `LN#HASH`:
 
 - `LN` is the 1-indexed line number.
-- `HH` is a 2-character content hash.
-- The hash uses FNV-1a 32-bit, normalized trailing whitespace, and the alphabet `ZPMQVRWSNKTXJBYH`.
+- `HASH` is a 3-character content hash. Legacy 2-character hashes are accepted for writes.
+- The default hash uses FNV-1a 32-bit, normalized trailing whitespace, and uppercase base32 alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (drops `0/O` and `1/I`, keeps `L`).
 - Blank or punctuation-only lines mix the line number into the hash so identical structural lines are easier for models to distinguish.
 
 ### Collision model
 
-`LN#HH` is a stale-context guard, not a cryptographic content ID. The line number narrows the check to the target line; the short hash catches ordinary stale edits while keeping anchors compact enough for agents to copy reliably. A hash collision on the same line is possible, so `hledit` does not claim perfect hashing or that corruption is impossible. If an edit returns `stale`, re-read and retry with the fresh anchor.
+`LN#HASH` is a stale-context guard, not a cryptographic content ID. The line number narrows the check to the target line; the short hash catches ordinary stale edits while keeping anchors compact enough for agents to copy reliably. A hash collision on the same line is possible, so `hledit` does not claim perfect hashing or that corruption is impossible. If an edit returns `stale`, re-read and retry with the fresh anchor.
 
 ## Behavior notes
 

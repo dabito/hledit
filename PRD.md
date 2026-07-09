@@ -14,9 +14,9 @@ LLM agents that edit by reproducing old text fail silently on whitespace mismatc
 |---|---|---|
 | `read` | Print file with `LN#HASH:` prefixes | `hledit read main.go` |
 | `read-range` | Paginated read | `hledit read-range main.go --offset 10 --limit 50` |
-| `replace` | Replace one line by anchor | `hledit replace main.go 5#TX -` |
-| `replace-range` | Replace line range by start/end anchors | `hledit replace-range main.go 5#TX 8#NK -` |
-| `insert` | Insert lines before or after an anchor | `hledit insert --after main.go 5#TX -` |
+| `replace` | Replace one line by anchor | `hledit replace main.go 5#TXA -` |
+| `replace-range` | Replace line range by start/end anchors | `hledit replace-range main.go 5#TXA 8#NKA -` |
+| `insert` | Insert lines before or after an anchor | `hledit insert --after main.go 5#TXA -` |
 
 Delete is `replace`/`replace-range` with empty content.
 
@@ -27,12 +27,12 @@ hledit <verb> <file> <anchor> [end-anchor] <content-source>
 ```
 
 - **content-source**: `-` for stdin, or a file path. Only for write verbs.
-- **anchor format**: `LN#HH` — line number + `#` + 2-char hash from custom alphabet.
+- **anchor format**: `LN#HASH` — line number + `#` + 3-char base32 hash. Legacy `LN#HH` anchors are accepted for writes.
 - **output**: read verbs → annotated text to stdout; write verbs → JSON result to stdout.
 
 ## Design Decisions
 
-1. **FNV-1a 32-bit → 2-char hash** — fast, stdlib-only, no cgo. Custom alphabet (`ZPMQVRWSNKTXJBYH`) avoids overlap with digits/hex for unambiguous parsing.
+1. **FNV-1a 32-bit → 3-char base32 hash** — fast, stdlib-only, no cgo. Alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` drops `0/O` and `1/I` while keeping `L`; legacy 2-char anchors remain accepted for compatibility.
 2. **Line-number mixing for non-significant lines** — blank lines and structural lines (`{`, `}`) bake in the line number so identical lines at different positions get different hashes. (Cognitive guardrail for the model, not a correctness requirement.)
 3. **Stdin for content via `-`** — no shell escaping issues, no temp file ambiguity. Heredocs work naturally: `hledit replace main.go 5#TX - <<EOF`
 4. **Atomic writes** — write to temp file, then rename. Never leave a partially-written file.

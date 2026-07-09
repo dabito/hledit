@@ -6,17 +6,43 @@ import (
 	"unicode"
 )
 
-const alphabet = "ZPMQVRWSNKTXJBYH"
+const legacyAnchorAlphabet = "ZPMQVRWSNKTXJBYH"
 
-// computeLineHash computes a 2-character hash for a given line number and line content.
+// anchorAlphabet is uppercase base32 without 0/O or 1/I. L is kept.
+const anchorAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+// computeLineHash computes a 3-character base32 hash for a given line number and line content.
 func computeLineHash(lineNum int, line string) string {
-	// 1. line = trimRight(line, '\r') then trimRight of whitespace (unicode.IsSpace)
-	line = strings.TrimRight(line, "\r")
-	line = strings.TrimRightFunc(line, unicode.IsSpace)
+	return encodeLineHash(lineNum, line, anchorAlphabet, 3)
+}
 
+// computeLegacyLineHash computes the pre-1.3.0 2-character base16 hash for compatibility.
+func computeLegacyLineHash(lineNum int, line string) string {
+	return encodeLineHash(lineNum, line, legacyAnchorAlphabet, 2)
+}
+
+func encodeLineHash(lineNum int, line string, alphabet string, length int) string {
+	line = normalizedHashLine(line)
+
+	sum := lineHashSum(lineNum, line)
+	buf := make([]byte, length)
+	base := uint32(len(alphabet))
+	for i := length - 1; i >= 0; i-- {
+		buf[i] = alphabet[sum%base]
+		sum /= base
+	}
+	return string(buf)
+}
+
+func normalizedHashLine(line string) string {
+	line = strings.TrimRight(line, "\r")
+	return strings.TrimRightFunc(line, unicode.IsSpace)
+}
+
+func lineHashSum(lineNum int, line string) uint32 {
 	h := fnv.New32a()
 
-	// 2. Determine if line is "significant": contains at least one unicode.IsLetter OR unicode.IsDigit rune.
+	// Determine if line is "significant": contains at least one unicode.IsLetter OR unicode.IsDigit rune.
 	isSignificant := false
 	for _, r := range line {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
@@ -25,8 +51,7 @@ func computeLineHash(lineNum int, line string) string {
 		}
 	}
 
-	// If NOT significant, mix lineNum into the FNV-1a state BEFORE the content:
-	// write lineNum as a little-endian byte sequence (for n>0: h.Write([]byte{byte(n & 0xff)}); n >>= 8, repeat).
+	// If NOT significant, mix lineNum into the FNV-1a state BEFORE the content.
 	if !isSignificant {
 		n := lineNum
 		for n > 0 {
@@ -35,18 +60,8 @@ func computeLineHash(lineNum int, line string) string {
 		}
 	}
 
-	// 3. h := fnv.New32a(); h.Write([]byte(line)); sum := h.Sum32()
 	h.Write([]byte(line))
-	sum := h.Sum32()
-
-	// 4. lo := byte(sum & 0xff)
-	lo := byte(sum & 0xff)
-
-	// 5. return two chars: nibble(lo>>4) + nibble(lo&0x0f) using alphabet "ZPMQVRWSNKTXJBYH"
-	h1 := lo >> 4
-	h2 := lo & 0x0f
-
-	return string(alphabet[h1]) + string(alphabet[h2])
+	return h.Sum32()
 }
 
 // formatTag returns intToStr(lineNum) + "#" + computeLineHash(lineNum, line).

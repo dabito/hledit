@@ -20,11 +20,11 @@ hledit read <file> [--grep <pattern>] [--context N] [--json]
 Reads the entire file. Each line is emitted as:
 
 ```
-<LN>#<HH>:<content>
+<LN>#<HASH>:<content>
 ```
 
 - `LN` — 1-indexed line number.
-- `HH` — 2-character hash (see §3).
+- `HASH` — 3-character hash (see §3). Legacy 2-character hashes are accepted for write anchors.
 - `:` — literal separator.
 - Content includes the original line without trailing `\n` or `\r`.
 - `--grep` — substring match; only matching lines are emitted.
@@ -70,7 +70,7 @@ hledit anchors <file> [--offset <N>] [--limit <M>] [--grep <pattern>] [--context
 ```
 
 - Same flags and filtering as `read-range`.
-- Emits `ANCHOR<TAB>TEXT` instead of `LN#HH:TEXT`.
+- Emits `ANCHOR<TAB>TEXT` instead of `LN#HASH:TEXT`.
 - Same truncation behavior at 50 KB / 2,000 lines from the offset.
 - `--json` — same JSON shape.
 
@@ -86,7 +86,7 @@ If `--offset` exceeds file length, emit:
 hledit replace <file> <anchor> <content-source>
 ```
 
-- `anchor` — `LN#HH` targeting a single line.
+- `anchor` — `LN#HASH` targeting a single line.
 - `content-source` — `-` for stdin, or a file path.
 - Reads replacement content from the source (one or more lines).
 - If content is empty, the line is **deleted**.
@@ -105,8 +105,8 @@ hledit replace <file> <anchor> <content-source>
 hledit replace-range <file> <anchor> <end-anchor> <content-source>
 ```
 
-- `anchor` — start `LN#HH` (inclusive).
-- `end-anchor` — end `LN#HH` (inclusive).
+- `anchor` — start `LN#HASH` (inclusive).
+- `end-anchor` — end `LN#HASH` (inclusive).
 - Replaces all lines from `anchor.Line` through `end-anchor.Line` with the new content.
 - If content is empty, the range is **deleted**.
 
@@ -144,10 +144,10 @@ Reads a JSON `BatchEditRequest` from stdin:
 ```json
 {
   "edits": [
-    { "op": "replace", "pos": "12#NK", "lines": ["new line"] },
-    { "op": "replace", "pos": "12#NK", "end_pos": "18#VR", "lines": ["new block"] },
-    { "op": "delete", "pos": "5#TX", "lines": [] },
-    { "op": "insert", "pos": "8#VR", "lines": ["inserted"] }
+    { "op": "replace", "pos": "12#NKA", "lines": ["new line"] },
+    { "op": "replace", "pos": "12#NKA", "end_pos": "18#VRC", "lines": ["new block"] },
+    { "op": "delete", "pos": "5#TXA", "lines": [] },
+    { "op": "insert", "pos": "8#VRB", "lines": ["inserted"] }
   ]
 }
 ```
@@ -170,16 +170,15 @@ Application:
 computeLineHash(lineNum, line):
   1. line = trimRight(line, '\r')
   2. line = trimRight(line, whitespace)
-  3. if line has NO letter AND NO digit:
+  3. h = FNV-1a-32()
+  4. if line has NO letter AND NO digit:
        mix lineNum into FNV-1a state before content
-  4. h = FNV-1a-32()
   5. h.write(line)
   6. sum = h.sum32()
-  7. lo = sum & 0xFF
-  8. return nibble(lo >> 4) + nibble(lo & 0x0F)
+  7. return sum encoded as 3 base32 chars
 ```
 
-**Nibble alphabet:** `ZPMQVRWSNKTXJBYH` (index 0–15)
+**Default alphabet:** `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (32 chars; drops `0/O` and `1/I`, keeps `L`). Legacy 2-character anchors use the old `ZPMQVRWSNKTXJBYH` alphabet and are accepted for writes.
 
 **Line-number mixing** (step 3): Write the line number as a varint-style sequence of bytes (little-endian, stopping at first zero high byte) into the hash state before the line content. This ensures structurally identical non-significant lines (e.g. two blank lines, or `}` at different positions) produce different hashes.
 
@@ -209,10 +208,10 @@ When any anchor's hash doesn't match the current file content:
   "ok": false,
   "error": "stale",
   "remaps": [
-    { "requested": "5#TX", "current": "5#NK" },
-    { "requested": "8#QR", "current": "9#VR" }
+    { "requested": "5#TXA", "current": "5#NKA" },
+    { "requested": "8#QRB", "current": "9#VRB" }
   ],
-  "message": "anchor 5#TX: expected hash TX, got NK"
+  "message": "anchor 5#TXA: expected hash TXA, got NKA"
 }
 ```
 
@@ -254,15 +253,15 @@ For `insert`, content must be non-empty. Empty content returns:
 Anchors match the regex:
 
 ```
-^\s*(\d+)\s*#\s*([ZPMQVRWSNKTXJBYH]{2})
+^\s*(\d+)\s*#\s*([ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{3}|[ZPMQVRWSNKTXJBYH]{2})(?:\b|[^A-Za-z0-9])
 ```
 
-Lenient: tolerates surrounding whitespace. If a model copy-pastes a full annotated line like `5#TX:func main() {`, the parser extracts `5#TX` and ignores the rest.
+Lenient: tolerates surrounding whitespace. If a model copy-pastes a full annotated line like `5#TXA:func main() {`, the parser extracts `5#TXA` and ignores the rest. Legacy 2-character anchors like `5#TX` are also accepted.
 
 Invalid anchors return:
 
 ```json
-{ "ok": false, "error": "invalid", "message": "invalid anchor \"foo\": expected LN#HH" }
+{ "ok": false, "error": "invalid", "message": "invalid anchor \"foo\": expected LN#HASH or legacy LN#HH" }
 ```
 
 ## 9. Exit Codes
@@ -281,7 +280,7 @@ Exit code 1 is only for infrastructure failures. All logical errors (stale, inva
 ├── main.go          # Entry point, CLI dispatch
 ├── read.go          # read + read-range + anchors verbs
 ├── edit.go          # replace, replace-range, insert verbs
-├── hash.go          # FNV-1a hash, nibble alphabet, formatTag
+├── hash.go          # FNV-1a hash, base32 alphabet, formatTag
 ├── types.go         # Anchor, EditResult, EditError, response types
 ├── anchor.go        # Anchor parsing + validation
 ├── write.go         # Atomic write logic (temp + rename)

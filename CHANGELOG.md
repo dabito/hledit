@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.0] — 2026-07-08
+
+### Changed
+
+- Upgrade default anchors to 3-character uppercase base32 hashes, increasing hash states from 256 to 32,768 while accepting legacy 2-character anchors for writes.
+
+### Compatibility
+
+- Legacy 2-character anchors from older `read` output still validate for edit, insert, replace-range, and batch requests.
+
 ## [1.2.4] — 2026-07-07
 
 ### Changed

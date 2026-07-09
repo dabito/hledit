@@ -11,7 +11,7 @@ import (
 // ────────────────────────────────────────────────────────────────────────────
 
 // Anchor is a validated line reference: a 1-indexed line number paired with
-// the expected 2-character hash computed by computeLineHash.
+// the expected hash computed by computeLineHash.
 type Anchor struct {
 	Line int
 	Hash string

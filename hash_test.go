@@ -5,9 +5,12 @@ import (
 )
 
 func TestComputeLineHash(t *testing.T) {
-	// Expected for line 2 (empty/non-significant) -> VR
-	if got := computeLineHash(2, ""); got != "VR" {
-		t.Errorf("computeLineHash(2, \"\") = %v; want VR", got)
+	// Expected for line 2 (empty/non-significant) -> 2CF
+	if got := computeLineHash(2, ""); got != "2CF" {
+		t.Errorf("computeLineHash(2, \"\") = %v; want 2CF", got)
+	}
+	if got := computeLegacyLineHash(2, ""); got != "VR" {
+		t.Errorf("computeLegacyLineHash(2, \"\") = %v; want VR", got)
 	}
 }
 
@@ -32,8 +35,8 @@ func TestIntToStr(t *testing.T) {
 }
 
 func TestFormatTag(t *testing.T) {
-	// If line 2 is empty, hash is VR. Tag is 2#VR
-	if got := formatTag(2, ""); got != "2#VR" {
-		t.Errorf("formatTag(2, \"\") = %s; want 2#VR", got)
+	// If line 2 is empty, hash is 2CF. Tag is 2#2CF
+	if got := formatTag(2, ""); got != "2#2CF" {
+		t.Errorf("formatTag(2, \"\") = %s; want 2#2CF", got)
 	}
 }

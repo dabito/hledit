@@ -115,7 +115,7 @@ func TestMainReadAndReadRange(t *testing.T) {
 	}
 
 	out := mainTestRunMain(t, "read", path)
-	if !strings.Contains(out, "1#WV:package main") || !strings.Contains(out, "3#") {
+	if !strings.Contains(out, formatTag(1, "package main")+":package main") || !strings.Contains(out, "3#") {
 		t.Fatalf("read output unexpected:\n%s", out)
 	}
 

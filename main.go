@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "1.2.4"
+const version = "1.3.0"
 
 // splitArgs separates a command's args into flags and positionals so that
 // flags may appear before OR after the positional file argument (e.g.
@@ -57,26 +57,26 @@ Usage:
   hledit batch [--check] <file>
 
 Arguments:
-  <anchor>          LN#HH from a prior read, e.g. 5#WS
+  <anchor>          LN#HASH from a prior read, e.g. 5#ABC (legacy 5#WS accepted)
   <content-source>  - for stdin, or a file path
 
 Batch input (JSON on stdin):
   {"edits": [
-    {"op": "replace", "pos": "12#NK", "lines": ["new line"]},
-    {"op": "replace", "pos": "12#NK", "end_pos": "18#VR", "lines": ["new block"]},
-    {"op": "delete", "pos": "5#TX", "lines": []},
-    {"op": "insert", "pos": "8#VR", "lines": ["inserted"]}
+    {"op": "replace", "pos": "12#NKA", "lines": ["new line"]},
+    {"op": "replace", "pos": "12#NKA", "end_pos": "18#VRC", "lines": ["new block"]},
+    {"op": "delete", "pos": "5#TXA", "lines": []},
+    {"op": "insert", "pos": "8#VRB", "lines": ["inserted"]}
   ]}
 
 Examples:
   hledit read main.go
   hledit read-range main.go --offset 40 --limit 20
-  printf '  return nil\n' | hledit replace main.go 12#NK -
-  hledit replace-range main.go 12#NK 18#VR /tmp/new-block.txt
-  cat header.txt | hledit insert --before main.go 1#WV -
-  printf '// done\n' | hledit insert --after main.go 99#TX -
-  echo '{"edits":[{"op":"replace","pos":"12#NK","lines":["fixed"]}]}' | hledit batch main.go
-  echo '{"edits":[{"op":"replace","pos":"12#NK","lines":["fixed"]}]}' | hledit batch --check main.go
+  printf '  return nil\n' | hledit replace main.go 12#NKA -
+  hledit replace-range main.go 12#NKA 18#VRC /tmp/new-block.txt
+  cat header.txt | hledit insert --before main.go 1#QVE -
+  printf '// done\n' | hledit insert --after main.go 99#TXA -
+  echo '{"edits":[{"op":"replace","pos":"12#NKA","lines":["fixed"]}]}' | hledit batch main.go
+  echo '{"edits":[{"op":"replace","pos":"12#NKA","lines":["fixed"]}]}' | hledit batch --check main.go
 
 Notes:
   - replace/replace-range with empty content deletes the target line/range.

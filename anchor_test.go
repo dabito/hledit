@@ -12,10 +12,11 @@ func TestParseAnchor(t *testing.T) {
 		want    Anchor
 		wantErr string
 	}{
-		{name: "valid", input: "5#WS", want: Anchor{Line: 5, Hash: "WS"}},
-		{name: "lenient annotated line", input: "5#WS:func main() {", want: Anchor{Line: 5, Hash: "WS"}},
-		{name: "spaces around hash", input: "  12 # TX :suffix", want: Anchor{Line: 12, Hash: "TX"}},
-		{name: "invalid format", input: "not-an-anchor", wantErr: "expected LN#HH"},
+		{name: "valid 3-char", input: "5#ABC", want: Anchor{Line: 5, Hash: "ABC"}},
+		{name: "legacy 2-char", input: "5#WS", want: Anchor{Line: 5, Hash: "WS"}},
+		{name: "lenient annotated line", input: "5#ABC:func main() {", want: Anchor{Line: 5, Hash: "ABC"}},
+		{name: "spaces around hash", input: "  12 # 2CF :suffix", want: Anchor{Line: 12, Hash: "2CF"}},
+		{name: "invalid format", input: "not-an-anchor", wantErr: "expected LN#HASH"},
 		{name: "line zero", input: "0#WS", wantErr: ">= 1"},
 	}
 
@@ -53,6 +54,11 @@ func TestValidateAnchor(t *testing.T) {
 			name:   "good anchor",
 			lines:  []string{"func main() {", "", "return"},
 			anchor: Anchor{Line: 1, Hash: computeLineHash(1, "func main() {")},
+		},
+		{
+			name:   "good legacy anchor",
+			lines:  []string{"func main() {", "", "return"},
+			anchor: Anchor{Line: 1, Hash: computeLegacyLineHash(1, "func main() {")},
 		},
 		{
 			name:    "stale hash",
@@ -94,6 +100,21 @@ func TestValidateAnchors(t *testing.T) {
 			{Line: 1, Hash: computeLineHash(1, lines[0])},
 			{Line: 2, Hash: computeLineHash(2, lines[1])},
 			{Line: 3, Hash: computeLineHash(3, lines[2])},
+		}
+
+		remaps, firstBad := validateAnchors(lines, anchors)
+		if firstBad != -1 {
+			t.Fatalf("firstBad = %d; want -1", firstBad)
+		}
+		if len(remaps) != 0 {
+			t.Fatalf("remaps = %#v; want empty", remaps)
+		}
+	})
+	t.Run("legacy anchors still validate", func(t *testing.T) {
+		lines := []string{"alpha", "beta"}
+		anchors := []Anchor{
+			{Line: 1, Hash: computeLegacyLineHash(1, lines[0])},
+			{Line: 2, Hash: computeLegacyLineHash(2, lines[1])},
 		}
 
 		remaps, firstBad := validateAnchors(lines, anchors)
