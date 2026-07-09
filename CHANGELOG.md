@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] — 2026-07-08
+
+### Changed
+
+- Align line-number/hash prefixes in `--pretty` output by padding shorter line numbers with leading spaces.
 ## [1.3.0] — 2026-07-08
 
 ### Changed

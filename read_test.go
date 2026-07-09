@@ -654,6 +654,28 @@ func TestCmdReadPrettyStylesAnchor(t *testing.T) {
 		t.Fatalf("pretty output missing line text: %q", output)
 	}
 }
+func TestCmdReadPrettyAlignsLineNumbers(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	dir := t.TempDir()
+	var content strings.Builder
+	for i := 0; i < 12; i++ {
+		content.WriteString("line\n")
+	}
+	path := readTestWriteFile(t, dir, "pretty-align.txt", content.String())
+
+	output := readTestCaptureStdout(t, func() {
+		if err := cmdReadPretty(path, "", 0, false, true); err != nil {
+			t.Fatalf("cmdReadPretty returned error: %v", err)
+		}
+	})
+
+	if !strings.Contains(output, ansiWrap(ansiDim, " 1")+ansiWrap(ansiDim, "#")) {
+		t.Fatalf("pretty output missing padded 1-digit line number: %q", output)
+	}
+	if !strings.Contains(output, ansiWrap(ansiDim, "10")+ansiWrap(ansiDim, "#")) {
+		t.Fatalf("pretty output missing unpadded 2-digit line number: %q", output)
+	}
+}
 
 func TestCmdReadPrettyHighlightsContent(t *testing.T) {
 	t.Setenv("NO_COLOR", "")

@@ -95,12 +95,13 @@ func applyContext(lines []string, matchIdxs []int, contextN int) []int {
 func emitAnnotatedLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxBytes int, pretty bool) int {
 	emittedCount := 0
 	usePretty := prettyEnabled(pretty)
+	lineNumWidth := prettyLineNumberWidth(len(lines))
 	for i := startIdx; i < len(lines); i++ {
 		lineNum := i + 1
 		line := lines[i]
 		lineStr := formatPlainReadLine(lineNum, line) + "\n"
 		if usePretty {
-			lineStr = formatPrettyReadLine(lineNum, line) + "\n"
+			lineStr = formatPrettyReadLine(lineNum, line, lineNumWidth) + "\n"
 		}
 
 		buf.WriteString(lineStr)
@@ -178,13 +179,14 @@ func emitMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, offset, 
 	}
 
 	usePretty := prettyEnabled(pretty)
+	lineNumWidth := prettyLineNumberWidth(len(lines))
 	count := 0
 	for i := startIdx; i < len(matchIdxs) && count < maxLines; i++ {
 		ln := matchIdxs[i]
 		line := lines[ln-1]
 		lineStr := formatPlainReadLine(ln, line)
 		if usePretty {
-			lineStr = formatPrettyReadLine(ln, line)
+			lineStr = formatPrettyReadLine(ln, line, lineNumWidth)
 		}
 		buf.WriteString(lineStr + "\n")
 		count++
@@ -241,12 +243,13 @@ func cmdReadPretty(path, grep string, contextN int, jsonOut bool, pretty bool) e
 func emitAnchorLines(buf *bytes.Buffer, lines []string, startIdx, maxLines, maxBytes int, pretty bool) {
 	emittedCount := 0
 	usePretty := prettyEnabled(pretty)
+	lineNumWidth := prettyLineNumberWidth(len(lines))
 	for i := startIdx; i < len(lines); i++ {
 		lineNum := i + 1
 		line := lines[i]
 		lineStr := formatPlainAnchorLine(lineNum, line) + "\n"
 		if usePretty {
-			lineStr = formatPrettyAnchorLine(lineNum, line) + "\n"
+			lineStr = formatPrettyAnchorLine(lineNum, line, lineNumWidth) + "\n"
 		}
 
 		buf.WriteString(lineStr)
@@ -276,13 +279,14 @@ func emitAnchorMatchLines(buf *bytes.Buffer, lines []string, matchIdxs []int, of
 	}
 
 	usePretty := prettyEnabled(pretty)
+	lineNumWidth := prettyLineNumberWidth(len(lines))
 	count := 0
 	for i := startIdx; i < len(matchIdxs) && count < maxLines; i++ {
 		ln := matchIdxs[i]
 		line := lines[ln-1]
 		lineStr := formatPlainAnchorLine(ln, line)
 		if usePretty {
-			lineStr = formatPrettyAnchorLine(ln, line)
+			lineStr = formatPrettyAnchorLine(ln, line, lineNumWidth)
 		}
 		buf.WriteString(lineStr + "\n")
 		count++

@@ -68,22 +68,39 @@ func highlightPrettyContent(line string) string {
 	return b.String()
 }
 
-func formatPrettyReadLine(lineNum int, line string) string {
+func prettyLineNumberWidth(lineCount int) int {
+	if lineCount < 1 {
+		return 1
+	}
+	return len(intToStr(lineCount))
+}
+
+func padPrettyLineNumber(lineNum, width int) string {
+	s := intToStr(lineNum)
+	if width <= len(s) {
+		return s
+	}
+	return strings.Repeat(" ", width-len(s)) + s
+}
+
+func formatPrettyReadLine(lineNum int, line string, lineNumWidth int) string {
 	tag := formatTag(lineNum, line)
 	parts := strings.SplitN(tag, "#", 2)
 	if len(parts) != 2 {
 		return tag + ":" + line
 	}
-	return ansiWrap(ansiDim, parts[0]) + ansiWrap(ansiDim, "#") + ansiWrap(ansiBoldCyan, parts[1]) + ansiWrap(ansiDim, prettyReadSeparator) + highlightPrettyContent(line)
+	linePart := padPrettyLineNumber(lineNum, lineNumWidth)
+	return ansiWrap(ansiDim, linePart) + ansiWrap(ansiDim, "#") + ansiWrap(ansiBoldCyan, parts[1]) + ansiWrap(ansiDim, prettyReadSeparator) + highlightPrettyContent(line)
 }
 
-func formatPrettyAnchorLine(lineNum int, line string) string {
+func formatPrettyAnchorLine(lineNum int, line string, lineNumWidth int) string {
 	tag := formatTag(lineNum, line)
 	parts := strings.SplitN(tag, "#", 2)
 	if len(parts) != 2 {
 		return tag + "\t" + line
 	}
-	return ansiWrap(ansiDim, parts[0]) + ansiWrap(ansiDim, "#") + ansiWrap(ansiBoldCyan, parts[1]) + ansiWrap(ansiDim, "\t") + highlightPrettyContent(line)
+	linePart := padPrettyLineNumber(lineNum, lineNumWidth)
+	return ansiWrap(ansiDim, linePart) + ansiWrap(ansiDim, "#") + ansiWrap(ansiBoldCyan, parts[1]) + ansiWrap(ansiDim, "\t") + highlightPrettyContent(line)
 }
 
 func formatPrettyNotice(s string) string {
