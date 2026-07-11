@@ -71,6 +71,15 @@ hledit_Windows_x86_64.zip
 checksums.txt
 ```
 
+## Agent search and anchor safety backlog
+
+- [ ] Expose grep context windows through all wrappers; default to a small balanced context (`2`) when `grep` is used, and allow `context:0` for match-only output.
+- [ ] Add anchored repo-wide `find` with bounded output, include/exclude globs, `.gitignore`/default ignore support, and optional context windows.
+- [ ] Add `peek`/read-around-anchor support so agents can expand context from a known line or `LN#HASH` without manual offset math.
+- [ ] Add better match controls: `ignoreCase`, `word`, `maxMatches`, then explicit regex mode once escaping/schema risks are handled.
+- [ ] Add variable-length hashes (`--hash-len` / env) and accept 2-6 character anchors; keep 3-char default until a versioned default change is justified.
+- [ ] Consider adaptive hash length for risky structural lines only after fixed-length support exists and agent output impact is measured.
+
 ## Near-term roadmap
 
 - Keep the `Makefile` workflow simple.
