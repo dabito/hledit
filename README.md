@@ -1,4 +1,8 @@
 # hledit
+[![Go Reference](https://pkg.go.dev/badge/github.com/dabito/hledit.svg)](https://pkg.go.dev/github.com/dabito/hledit)
+[![CI](https://github.com/dabito/hledit/actions/workflows/ci.yml/badge.svg)](https://github.com/dabito/hledit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Latest tag](https://img.shields.io/github/v/tag/dabito/hledit?label=version)](https://github.com/dabito/hledit/tags)
 
 `hledit` is a tiny hash-anchored line editor for AI coding agents.
 
