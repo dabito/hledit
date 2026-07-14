@@ -154,6 +154,8 @@ claude mcp add hledit npx hledit-mcp
 ## Commands
 
 ```text
+hledit --version
+hledit help [command]
 hledit read <file> [--grep pattern] [--context N] [--json] [--pretty]
 hledit read-range <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json] [--pretty]
 hledit anchors <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json] [--pretty]
@@ -163,9 +165,10 @@ hledit insert [--before|--after] <file> <anchor> <content-source>
 hledit batch [--check] <file>
 ```
 
+Use `hledit --help` for full help. Use `hledit <command> --help` or `hledit help <command>` for command-specific help.
+
 `--grep` matches substrings. `--context N` adds N lines before/after each match. `--pretty` adds ANSI styling for human reading; `--json` stays machine-readable and unstyled.
 `<content-source>` is either `-` for stdin or a file path.
-
 ## Examples
 
 Read a file:

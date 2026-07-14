@@ -93,7 +93,7 @@ func TestSplitArgs(t *testing.T) {
 
 func TestMainHelp(t *testing.T) {
 	out := mainTestRunMain(t, "help")
-	if !strings.Contains(out, "hledit read <file>") || !strings.Contains(out, "Examples:") {
+	if !strings.Contains(out, "hledit read <file>") || !strings.Contains(out, "hledit help [command]") || !strings.Contains(out, "Examples:") {
 		t.Fatalf("help output missing expected text:\n%s", out)
 	}
 
@@ -103,6 +103,37 @@ func TestMainHelp(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "hledit read <file>") || !strings.Contains(stdout, "Examples:") {
 		t.Fatalf("no-args help output missing expected text:\n%s", stdout)
+	}
+
+	for _, args := range [][]string{
+		{"read", "--help"},
+		{"read-range", "-h"},
+		{"anchors", "--help"},
+		{"help", "batch"},
+		{"--help", "insert"},
+	} {
+		stdout, stderr, code := mainTestRunForCode(t, args...)
+		if code != 0 || stderr != "" {
+			t.Fatalf("run(%v) code/stderr = %d/%q, want 0/empty", args, code, stderr)
+		}
+		if !strings.Contains(stdout, "Usage:") || !strings.Contains(stdout, "hledit") {
+			t.Fatalf("run(%v) help output missing usage:\n%s", args, stdout)
+		}
+	}
+
+	_, stderr, code = mainTestRunForCode(t, "help", "bogus")
+	if code != 2 || !strings.Contains(stderr, "unknown help topic") {
+		t.Fatalf("run(help bogus) code/stderr = %d/%q, want unknown help topic", code, stderr)
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "help.txt")
+	if err := os.WriteFile(path, []byte("needs help\nno match\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	stdout, stderr, code = mainTestRunForCode(t, "read", path, "--grep", "help")
+	if code != 0 || stderr != "" || strings.Contains(stdout, "Usage:") || !strings.Contains(stdout, "needs help") {
+		t.Fatalf("run(read --grep help) code/stderr/stdout = %d/%q/%q, want grep execution", code, stderr, stdout)
 	}
 }
 

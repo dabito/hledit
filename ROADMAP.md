@@ -73,7 +73,7 @@ checksums.txt
 
 ## Agent search and anchor safety backlog
 
-- [ ] Expose grep context windows through all wrappers; default to a small balanced context (`2`) when `grep` is used, and allow `context:0` for match-only output.
+- [x] Expose grep context windows through all wrappers; default to a small balanced context (`2`) when `grep` is used, and allow `context:0` for match-only output.
 - [ ] Add anchored repo-wide `find` with bounded output, include/exclude globs, `.gitignore`/default ignore support, and optional context windows.
 - [ ] Add `peek`/read-around-anchor support so agents can expand context from a known line or `LN#HASH` without manual offset math.
 - [ ] Add better match controls: `ignoreCase`, `word`, `maxMatches`, then explicit regex mode once escaping/schema risks are handled.
@@ -86,6 +86,5 @@ checksums.txt
 - Keep tests fully offline and deterministic.
 - Consider shell completions (`hledit completion zsh|bash|fish`) now that `anchors` exists.
 - Revisit GoReleaser once the module has a public repository path and version tags.
-- Consider structured `edits` param for `pi-hledit` batch tool (array of objects, not JSON string) so the RPC layer handles escaping. Eliminates model-generated malformed JSON with literal control characters. Requires schema coordination between CLI and extension.
 
 - Consider splitting `edit.go` into `helpers.go` + `batch.go` once docs/release work settles; current mixed file is publishable with strong contract tests, but the split keeps command logic easier to audit.

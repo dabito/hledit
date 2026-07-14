@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "1.3.1"
+const version = "1.3.3"
 
 // splitArgs separates a command's args into flags and positionals so that
 // flags may appear before OR after the positional file argument (e.g.
@@ -48,6 +48,7 @@ const usage = `hledit — hash-anchored line editor for AI coding agents
 
 Usage:
   hledit --version
+  hledit help [command]
   hledit read <file> [--grep <pattern>] [--context N] [--json] [--pretty]
   hledit read-range <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
   hledit anchors <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
@@ -71,6 +72,7 @@ Batch input (JSON on stdin):
 Examples:
   hledit read main.go
   hledit read-range main.go --offset 40 --limit 20
+  hledit read --help
   printf '  return nil\n' | hledit replace main.go 12#NKA -
   hledit replace-range main.go 12#NKA 18#VRC /tmp/new-block.txt
   cat header.txt | hledit insert --before main.go 1#QVE -
@@ -79,6 +81,7 @@ Examples:
   echo '{"edits":[{"op":"replace","pos":"12#NKA","lines":["fixed"]}]}' | hledit batch --check main.go
 
 Notes:
+  - Use "hledit <command> --help" or "hledit help <command>" for command-specific help.
   - replace/replace-range with empty content deletes the target line/range.
   - batch applies multiple edits atomically: all anchors validated first,
     then edits applied bottom-up, then a single atomic write.
@@ -87,6 +90,146 @@ Notes:
     nothing is written and stdout contains JSON {"ok":false,"error":"stale",...}.
   - Logical errors exit 0 and are reported as JSON on stdout; CLI misuse exits 2.
 `
+
+const readUsage = `hledit read — print anchored lines from a whole file
+
+Usage:
+  hledit read <file> [--grep <pattern>] [--context N] [--json] [--pretty]
+
+Flags:
+  --grep <pattern>  filter lines by substring match
+  --context N       include N surrounding lines for each grep match
+  --json            emit structured JSON instead of annotated text
+  --pretty          emit ANSI-styled text for human reading
+`
+
+const readRangeUsage = `hledit read-range — print anchored lines from a bounded line range
+
+Usage:
+  hledit read-range <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
+
+Flags:
+  --offset N        1-indexed starting line (default 1)
+  --limit M         max lines to return (default 2000)
+  --grep <pattern>  filter lines by substring match
+  --context N       include N surrounding lines for each grep match
+  --json            emit structured JSON instead of annotated text
+  --pretty          emit ANSI-styled text for human reading
+`
+
+const anchorsUsage = `hledit anchors — print anchors and text from a bounded line range
+
+Usage:
+  hledit anchors <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
+
+Flags:
+  --offset N        1-indexed starting line (default 1)
+  --limit M         max lines to return (default 2000)
+  --grep <pattern>  filter lines by substring match
+  --context N       include N surrounding lines for each grep match
+  --json            emit structured JSON instead of tab-separated text
+  --pretty          emit ANSI-styled text for human reading
+`
+
+const replaceUsage = `hledit replace — replace one anchored line
+
+Usage:
+  hledit replace <file> <anchor> <content-source>
+
+Arguments:
+  <anchor>          LN#HASH from a prior read, e.g. 5#ABC
+  <content-source>  - for stdin, or a file path
+
+Notes:
+  Empty content deletes the target line.
+`
+
+const replaceRangeUsage = `hledit replace-range — replace an anchored line range
+
+Usage:
+  hledit replace-range <file> <anchor> <end-anchor> <content-source>
+
+Arguments:
+  <anchor>          first LN#HASH from a prior read
+  <end-anchor>      last LN#HASH from a prior read
+  <content-source>  - for stdin, or a file path
+
+Notes:
+  Empty content deletes the target range.
+`
+
+const insertUsage = `hledit insert — insert lines before or after an anchor
+
+Usage:
+  hledit insert [--before|--after] <file> <anchor> <content-source>
+
+Flags:
+  --before          insert before the anchor (default)
+  --after           insert after the anchor
+
+Arguments:
+  <anchor>          LN#HASH from a prior read
+  <content-source>  - for stdin, or a file path
+`
+
+const batchUsage = `hledit batch — apply multiple anchored edits atomically
+
+Usage:
+  hledit batch [--check] <file>
+
+Flags:
+  --check           validate only, do not write
+
+Input:
+  JSON on stdin with an edits array. All anchors validate before any write.
+`
+
+const versionUsage = `hledit version — print version
+
+Usage:
+  hledit version
+  hledit --version
+`
+
+func commandUsage(verb string) (string, bool) {
+	switch verb {
+	case "read":
+		return readUsage, true
+	case "read-range":
+		return readRangeUsage, true
+	case "anchors":
+		return anchorsUsage, true
+	case "replace":
+		return replaceUsage, true
+	case "replace-range":
+		return replaceRangeUsage, true
+	case "insert":
+		return insertUsage, true
+	case "batch":
+		return batchUsage, true
+	case "version":
+		return versionUsage, true
+	default:
+		return "", false
+	}
+}
+
+func isHelpArg(arg string) bool {
+	return arg == "help" || arg == "-h" || arg == "--help"
+}
+
+func isCommandHelpFlag(arg string) bool {
+	return arg == "-h" || arg == "--help"
+}
+
+func containsCommandHelpFlag(args []string) bool {
+	for _, arg := range args {
+		if isCommandHelpFlag(arg) {
+			return true
+		}
+	}
+	return false
+}
 
 func main() {
 	os.Exit(run(os.Args[1:]))
@@ -104,9 +247,33 @@ func run(argv []string) int {
 		return 0
 	}
 
+	if isHelpArg(argv[0]) {
+		if len(argv) == 1 {
+			fmt.Print(usage)
+			return 0
+		}
+		if len(argv) == 2 {
+			if help, ok := commandUsage(argv[1]); ok {
+				fmt.Print(help)
+				return 0
+			}
+			fmt.Fprintf(os.Stderr, "unknown help topic %q\n\n%s", argv[1], usage)
+			return 2
+		}
+		fmt.Fprintf(os.Stderr, "too many help topics\n\n%s", usage)
+		return 2
+	}
+
 	verb := argv[0]
 	args := argv[1:]
-
+	if containsCommandHelpFlag(args) {
+		if help, ok := commandUsage(verb); ok {
+			fmt.Print(help)
+			return 0
+		}
+		fmt.Fprintf(os.Stderr, "unknown verb %q\n\n%s", verb, usage)
+		return 2
+	}
 	switch verb {
 	case "read":
 		positionals, flagArgs := splitArgs(args)

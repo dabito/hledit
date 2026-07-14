@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.3] — 2026-07-14
+
+### Added
+
+- Add command-specific help via `hledit <command> --help`, `hledit help <command>`, and `hledit --help <command>`.
+
 ## [1.3.2] — 2026-07-14
 
 ### Added
