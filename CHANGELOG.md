@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.2] — 2026-07-14
+
+### Added
+
+- Add package-level Go documentation for better pkg.go.dev summary/search snippets.
+
 ## [1.3.1] — 2026-07-08
 
 ### Changed
