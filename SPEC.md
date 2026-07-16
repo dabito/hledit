@@ -80,7 +80,47 @@ If `--offset` exceeds file length, emit:
 { "ok": false, "error": "range", "message": "offset 500 exceeds file length 120" }
 ```
 
-### 2.4 `replace`
+### 2.4 `find`
+
+```
+hledit find <pattern> [path] [--context N] [--limit N] [--max-files N] [--include glob] [--exclude glob] [--json] [--pretty]
+```
+
+Recursively searches `path` (default `.`) using substring, case-sensitive matching. Regex is not enabled.
+
+Default text output is grouped by slash-normalized relative file path:
+
+```
+src/auth.ts
+42#NKA:function validateToken(token: string) {
+```
+
+Anchors are file-agnostic; an anchor returned by `find` must be used with its file path. `--json` is safer for agents/wrappers because it preserves `{file, lines:[{line,anchor,text}]}` pairing:
+
+```json
+{
+  "ok": true,
+  "mode": "substring",
+  "matches": [
+    { "file": "src/auth.ts", "lines": [ { "line": 42, "anchor": "42#NKA", "text": "function validateToken(token: string) {" } ] }
+  ],
+  "truncated": false,
+  "filesSearched": 128,
+  "filesSkipped": 6,
+  "matchCount": 1,
+  "emittedLineCount": 1
+}
+```
+
+- `--context` — include N lines before/after each match; overlapping windows merge.
+- `--limit` — maximum matching/context lines to emit (default 500).
+- `--max-files` — maximum matching file groups to emit (default 100).
+- `--include` / `--exclude` — repeatable globs matched against slash-normalized relative paths; when a glob has no slash it also matches basenames; directory excludes prune matching trees; exclude wins over include.
+- Default ignored directories: `.git`, `node_modules`, `dist`, `build`, `coverage`, `.cache`, `.next`, `.nuxt`, `target`, `.venv`, `__pycache__`, `vendor`.
+- Symlinks, binary files, and files over 2 MiB are skipped and counted in `filesSkipped`.
+- Text is bounded by line count, matching file count, a global byte budget, and a per-line display cap. A displayed line may be truncated while its anchor still hashes the full original line.
+- Zero matches emit no text, or JSON with `matches:[]`; exit code remains 0.
+### 2.5 `replace`
 
 ```
 hledit replace <file> <anchor> <content-source>
@@ -99,7 +139,7 @@ hledit replace <file> <anchor> <content-source>
 3. Replace the line at `LN` with the new content.
 4. Write atomically (temp + rename).
 
-### 2.5 `replace-range`
+### 2.6 `replace-range`
 
 ```
 hledit replace-range <file> <anchor> <end-anchor> <content-source>
@@ -115,7 +155,7 @@ hledit replace-range <file> <anchor> <end-anchor> <content-source>
 - `anchor.Line <= end-anchor.Line`.
 - Both anchors must match current file hashes.
 
-### 2.6 `insert`
+### 2.7 `insert`
 
 ```
 hledit insert [--before|--after] <file> <anchor> <content-source>
@@ -132,7 +172,7 @@ hledit insert [--before|--after] <file> <anchor> <content-source>
 2. Insert new lines at the specified position.
 3. Write atomically.
 
-### 2.7 `batch`
+### 2.8 `batch`
 
 ```
 hledit batch [--check] <file>

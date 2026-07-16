@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0] — 2026-07-16
+
+### Added
+
+- Add `hledit find` for bounded substring repo search with editable anchors grouped by file.
+- Add `find --json` with stable `{file, lines[]}` pairing for safer agent/wrapper use.
+- Add default directory ignores, include/exclude globs, binary/symlink skips, context windows, and output caps for `find`.
 ## [1.3.3] — 2026-07-14
 
 ### Added

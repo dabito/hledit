@@ -159,6 +159,7 @@ hledit help [command]
 hledit read <file> [--grep pattern] [--context N] [--json] [--pretty]
 hledit read-range <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json] [--pretty]
 hledit anchors <file> [--offset N] [--limit M] [--grep pattern] [--context N] [--json] [--pretty]
+hledit find <pattern> [path] [--context N] [--limit N] [--max-files N] [--include glob] [--exclude glob] [--json] [--pretty]
 hledit replace <file> <anchor> <content-source>
 hledit replace-range <file> <anchor> <end-anchor> <content-source>
 hledit insert [--before|--after] <file> <anchor> <content-source>
@@ -167,7 +168,7 @@ hledit batch [--check] <file>
 
 Use `hledit --help` for full help. Use `hledit <command> --help` or `hledit help <command>` for command-specific help.
 
-`--grep` matches substrings. `--context N` adds N lines before/after each match. `--pretty` adds ANSI styling for human reading; `--json` stays machine-readable and unstyled.
+`--grep` and `find` use substring, case-sensitive matching. `--context N` adds N lines before/after each match. `--pretty` adds ANSI styling for human reading; `--json` stays machine-readable and unstyled.
 `<content-source>` is either `-` for stdin or a file path.
 ## Examples
 
@@ -181,12 +182,19 @@ Read a window of a large file:
 
 ```bash
 hledit read-range main.go --offset 40 --limit 20
+```
 
 Read styled output for humans:
 
 ```bash
 hledit read main.go --pretty
 ```
+
+Search a tree and return editable anchors grouped by file:
+
+```bash
+hledit find validateToken src --include '*.ts' --context 2
+hledit find validateToken src --json
 ```
 
 Replace one line using stdin:
@@ -223,7 +231,8 @@ printf '' | hledit replace-range main.go 12#NKA 18#VRC -
 ## Output
 
 Read emits `LN#HASH:TEXT`; anchors emits `ANCHOR<TAB>TEXT`.
-`--json` emits `{ok, lines:[{line,anchor,text}], truncated, nextOffset}`.
+`find` emits file headers followed by `LN#HASH:TEXT` lines. Anchors are file-agnostic: keep each anchor paired with its file header. For agents/wrappers, prefer `find --json`; it preserves `{file, lines:[{line,anchor,text}]}` pairing. `find` skips symlinks, binary files, and files over 2 MiB.
+`read --json` emits `{ok, lines:[{line,anchor,text}], truncated, nextOffset}`; `find --json` emits `{ok, mode:"substring", matches:[{file,lines}], truncated, filesSearched, filesSkipped, matchCount, emittedLineCount}`.
 
 ```text
 1#QVE:package main

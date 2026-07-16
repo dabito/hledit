@@ -90,9 +90,10 @@ type BatchEditError struct {
 
 // ReadLine is a single annotated line in a JSON read result.
 type ReadLine struct {
-	Line   int    `json:"line"`
-	Anchor string `json:"anchor"`
-	Text   string `json:"text"`
+	Line          int    `json:"line"`
+	Anchor        string `json:"anchor"`
+	Text          string `json:"text"`
+	TextTruncated bool   `json:"textTruncated,omitempty"`
 }
 
 // ReadResult is written to stdout by read/read-range when --json is set.
@@ -101,6 +102,24 @@ type ReadResult struct {
 	Lines      []ReadLine `json:"lines"`
 	Truncated  bool       `json:"truncated"`
 	NextOffset int        `json:"nextOffset,omitempty"`
+}
+
+// FindMatch is a group of find results for one file.
+type FindMatch struct {
+	File  string     `json:"file"`
+	Lines []ReadLine `json:"lines"`
+}
+
+// FindResult is written to stdout by find when --json is set.
+type FindResult struct {
+	OK               bool        `json:"ok"`
+	Mode             string      `json:"mode"`
+	Matches          []FindMatch `json:"matches"`
+	Truncated        bool        `json:"truncated"`
+	FilesSearched    int         `json:"filesSearched"`
+	FilesSkipped     int         `json:"filesSkipped"`
+	MatchCount       int         `json:"matchCount"`
+	EmittedLineCount int         `json:"emittedLineCount"`
 }
 
 // ────────────────────────────────────────────────────────────────────────────

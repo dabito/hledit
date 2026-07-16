@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const version = "1.3.3"
+const version = "1.4.0"
 
 // splitArgs separates a command's args into flags and positionals so that
 // flags may appear before OR after the positional file argument (e.g.
@@ -15,13 +15,17 @@ const version = "1.3.3"
 // A bare "-" is treated as a positional (stdin content-source).
 func splitArgs(args []string) (positionals []string, flags []string) {
 	// Flags that take a value ("-x v" form) in our subcommands.
-	valueFlags := map[string]bool{"-offset": true, "--offset": true, "-limit": true, "--limit": true, "-grep": true, "--grep": true, "-context": true, "--context": true}
+	valueFlags := map[string]bool{"-offset": true, "--offset": true, "-limit": true, "--limit": true, "-max-files": true, "--max-files": true, "-grep": true, "--grep": true, "-context": true, "--context": true, "-include": true, "--include": true, "-exclude": true, "--exclude": true}
 	boolFlags := map[string]bool{"--before": true, "--after": true, "--json": true, "-json": true, "--pretty": true, "-pretty": true, "--check": true, "-check": true}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if a == "-" {
 			positionals = append(positionals, a)
 			continue
+		}
+		if a == "--" {
+			positionals = append(positionals, args[i+1:]...)
+			break
 		}
 		if valueFlags[a] {
 			flags = append(flags, a)
@@ -52,6 +56,7 @@ Usage:
   hledit read <file> [--grep <pattern>] [--context N] [--json] [--pretty]
   hledit read-range <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
   hledit anchors <file> [--offset N] [--limit M] [--grep <pattern>] [--context N] [--json] [--pretty]
+  hledit find <pattern> [path] [--context N] [--limit N] [--max-files N] [--include glob] [--exclude glob] [--json] [--pretty]
   hledit replace <file> <anchor> <content-source>
   hledit replace-range <file> <anchor> <end-anchor> <content-source>
   hledit insert [--before|--after] <file> <anchor> <content-source>
@@ -131,6 +136,30 @@ Flags:
   --pretty          emit ANSI-styled text for human reading
 `
 
+const findUsage = `hledit find — substring search files and print editable anchors grouped by file
+
+Usage:
+  hledit find <pattern> [path] [--context N] [--limit N] [--max-files N] [--include glob] [--exclude glob] [--json] [--pretty]
+
+Semantics:
+  Search mode is substring, case-sensitive. Regex is not enabled.
+
+Flags:
+  --context N       include N surrounding lines for each match (default 0)
+  --limit N         max matching/context lines to emit (default 500)
+  --max-files N     max matching file groups to emit (default 100)
+  --include glob    include matching slash-normalized paths; repeatable; basename match when glob has no slash
+  --exclude glob    exclude matching slash-normalized paths or directories; repeatable; exclude wins over include
+  --json            emit stable {file, lines[]} JSON instead of grouped text
+  --pretty          emit ANSI-styled text for human reading
+
+Notes:
+  - Text output groups anchors under file headers.
+  - Anchors are file-agnostic: keep each LN#HASH paired with its file header.
+  - For agents/wrappers, prefer --json; it preserves {file, lines[]} pairing.
+  - Default ignored dirs: .git, node_modules, dist, build, coverage, .cache, .next, .nuxt, target, .venv, __pycache__, vendor.
+  - Symlinks, binary files, and files over 2 MiB are skipped; zero matches exit 0.
+`
 const replaceUsage = `hledit replace — replace one anchored line
 
 Usage:
@@ -199,6 +228,8 @@ func commandUsage(verb string) (string, bool) {
 		return readRangeUsage, true
 	case "anchors":
 		return anchorsUsage, true
+	case "find":
+		return findUsage, true
 	case "replace":
 		return replaceUsage, true
 	case "replace-range":
@@ -321,6 +352,33 @@ func run(argv []string) int {
 		}
 		return mustRun(cmdAnchorsPretty(positionals[0], *offset, *limit, *grep, *contextN, *jsonOut, *pretty))
 
+	case "find":
+		positionals, flagArgs := splitArgs(args)
+		fs := flag.NewFlagSet("find", flag.ExitOnError)
+		contextN := fs.Int("context", 0, "include N surrounding lines for each match")
+		limit := fs.Int("limit", findDefaultLimit, "max matching/context lines to emit")
+		maxFiles := fs.Int("max-files", findDefaultMaxFiles, "max matching file groups to emit")
+		var includes stringListFlag
+		var excludes stringListFlag
+		fs.Var(&includes, "include", "include matching slash-normalized paths; repeatable")
+		fs.Var(&excludes, "exclude", "exclude matching slash-normalized paths; repeatable")
+		pretty := fs.Bool("pretty", false, "emit ANSI-styled text for human reading")
+		jsonOut := fs.Bool("json", false, "emit stable JSON instead of grouped text")
+		fs.Parse(flagArgs)
+		if len(positionals) < 1 || len(positionals) > 2 {
+			fmt.Fprint(os.Stderr, findUsage)
+			return 2
+		}
+		root := "."
+		if len(positionals) == 2 {
+			root = positionals[1]
+		}
+		opts := findOptions{Pattern: positionals[0], Root: root, Context: *contextN, Limit: *limit, MaxFiles: *maxFiles, Includes: includes, Excludes: excludes, JSON: *jsonOut, Pretty: *pretty}
+		if err := validateFindOptions(opts); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 2
+		}
+		return mustRun(cmdFind(opts))
 	case "replace":
 		if len(args) != 3 {
 			fmt.Fprint(os.Stderr, usage)
